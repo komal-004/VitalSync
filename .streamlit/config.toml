@@ -1,0 +1,12 @@
+# Streamlit configuration for modern dark navy / teal theme
+[theme]
+primaryColor = "#00D2BE"
+backgroundColor = "#0A1128"
+secondaryBackgroundColor = "#101D42"
+textColor = "#E0E6ED"
+font = "sans serif"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = true

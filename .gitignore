@@ -12,8 +12,8 @@ env.bak/
 venv.bak/
 
 # Streamlit local runtime state
-.streamlit/
-!/.streamlit/config.toml
+.streamlit/*
+!.streamlit/config.toml
 
 # Testing & Coverage
 .pytest_cache/
