@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Streamlit local runtime state
+.streamlit/
+!/.streamlit/config.toml
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# macOS system files
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,426 @@
+"""VitalSync - Real-Time Vital Sign Monitoring & Anomaly Detection System
+Prototype v1 - Interactive Streamlit Dashboard
+
+Author: 3rd-Year B.Tech Computer Science Student
+Project: VitalSync (HealthTech / IoT Stream Processing)
+"""
+
+import sys
+import os
+import time
+import streamlit as st
+import pandas as pd
+
+# Add project root directory to path for clean modular imports
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from simulator.health_generator import HealthDataSimulator
+from detection.detection_rules import AnomalyDetector
+from services.data_service import MonitoringState
+from components.dashboard_components import (
+    get_custom_css,
+    render_header,
+    render_vital_cards,
+    render_alert_banner,
+    create_plotly_chart,
+    THEME_TEAL,
+    THEME_RED,
+    THEME_AMBER,
+    THEME_CYAN,
+    THEME_GREEN,
+)
+
+# -----------------------------------------------------------------------------
+# PAGE CONFIGURATION
+# -----------------------------------------------------------------------------
+st.set_page_config(
+    page_title="VitalSync - Health Anomaly Monitor",
+    page_icon="🫀",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Inject custom CSS
+st.markdown(get_custom_css(), unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# SESSION STATE INITIALIZATION
+# -----------------------------------------------------------------------------
+if "simulator" not in st.session_state:
+    st.session_state.simulator = HealthDataSimulator(device_id="FIT-101")
+
+if "detector" not in st.session_state:
+    st.session_state.detector = AnomalyDetector()
+
+if "monitoring_state" not in st.session_state:
+    st.session_state.monitoring_state = MonitoringState(max_history=50)
+
+if "is_simulating" not in st.session_state:
+    st.session_state.is_simulating = False
+
+if "simulation_speed" not in st.session_state:
+    st.session_state.simulation_speed = 1.0
+
+# Generate first initial reading if buffer is completely empty
+if st.session_state.monitoring_state.total_readings_generated == 0:
+    first_reading = st.session_state.simulator.generate_reading()
+    first_eval = st.session_state.detector.evaluate_reading(first_reading, recent_history=[])
+    st.session_state.monitoring_state.record_reading(first_reading, first_eval.to_dict())
+
+
+# -----------------------------------------------------------------------------
+# HELPER ACTIONS
+# -----------------------------------------------------------------------------
+def step_simulation() -> None:
+    """Generate one discrete reading and evaluate it."""
+    simulator: HealthDataSimulator = st.session_state.simulator
+    detector: AnomalyDetector = st.session_state.detector
+    state: MonitoringState = st.session_state.monitoring_state
+
+    reading = simulator.generate_reading()
+    history = state.get_recent_history()
+    eval_res = detector.evaluate_reading(reading, recent_history=history)
+    state.record_reading(reading, eval_res.to_dict())
+
+
+def reset_simulation() -> None:
+    """Reset the simulator, state buffers, and counters."""
+    st.session_state.simulator.reset_state()
+    st.session_state.monitoring_state.reset_all()
+    # Generate fresh baseline reading
+    first_reading = st.session_state.simulator.generate_reading()
+    first_eval = st.session_state.detector.evaluate_reading(first_reading, recent_history=[])
+    st.session_state.monitoring_state.record_reading(first_reading, first_eval.to_dict())
+    st.session_state.is_simulating = False
+
+
+# -----------------------------------------------------------------------------
+# SIDEBAR CONTROLS
+# -----------------------------------------------------------------------------
+with st.sidebar:
+    st.markdown("""
+    <div style="padding: 10px 0 16px 0;">
+        <h2 style="color: #00D2BE; margin: 0; font-size: 1.6rem; letter-spacing: -0.02em;">🫀 VitalSync</h2>
+        <span style="font-size: 0.8rem; color: #94A3B8;">Real-Time Health Stream Processing</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 🎮 Simulation Controls")
+
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.session_state.is_simulating:
+            if st.button("⏸ Pause", use_container_width=True, type="secondary"):
+                st.session_state.is_simulating = False
+                st.rerun()
+        else:
+            if st.button("▶ Start Live", use_container_width=True, type="primary"):
+                st.session_state.is_simulating = True
+                st.rerun()
+
+    with col_btn2:
+        if st.button("⏩ Step (+1)", use_container_width=True, help="Generate a single simulated reading"):
+            step_simulation()
+            st.rerun()
+
+    if st.button("🔄 Reset All Data", use_container_width=True, help="Clear history and reset baseline"):
+        reset_simulation()
+        st.rerun()
+
+    st.session_state.simulation_speed = st.slider(
+        "Simulation Interval (Seconds)",
+        min_value=0.5,
+        max_value=3.0,
+        value=float(st.session_state.simulation_speed),
+        step=0.5,
+        help="Controls how fast simulated readings stream in"
+    )
+
+    st.markdown("---")
+    st.markdown("### 🧪 Simulation Scenarios")
+    scenario_options = {
+        "NORMAL_RESTING": "🟢 Normal Resting",
+        "WALKING": "🚶 Walking Activity",
+        "EXERCISE": "🏃 Exercise (Cardio Workout)",
+        "UNUSUAL_HEART_RATE": "⚠️ Unusual Heart Rate (Tachycardia)",
+        "UNUSUAL_SPO2": "⚠️ Unusual SpO2 (Hypoxia Event)",
+        "MULTIPLE_ANOMALIES": "🚨 Multiple Anomalies (Critical Crisis)",
+        "SUDDEN_SPIKE": "⚡ Sudden Delta Spike",
+        "INVALID_DATA": "❌ Sensor Glitch / Out-of-Bounds Data",
+    }
+
+    selected_scenario = st.selectbox(
+        "Inject Scenario",
+        options=list(scenario_options.keys()),
+        format_func=lambda k: scenario_options[k],
+        index=0,
+        help="Switch scenarios to demonstrate anomaly detection rules live"
+    )
+    st.session_state.simulator.set_scenario(selected_scenario)
+
+    st.markdown("---")
+    with st.expander("⚙️ Configurable Detection Thresholds"):
+        st.caption("Demonstration rules (not medical diagnostic criteria)")
+        curr_thresh = st.session_state.detector.thresholds
+
+        new_hr_rest_warn = st.slider("Resting HR Warning (BPM)", 85, 120, int(curr_thresh["hr_resting_max_warn"]))
+        new_hr_rest_crit = st.slider("Resting HR Critical (BPM)", 120, 160, int(curr_thresh["hr_resting_max_crit"]))
+        new_spo2_warn = st.slider("SpO2 Warning Threshold (%)", 90, 96, int(curr_thresh["spo2_warn"]))
+        new_spo2_crit = st.slider("SpO2 Critical Threshold (%)", 85, 92, int(curr_thresh["spo2_crit"]))
+        new_sys_warn = st.slider("Systolic BP Warning (mmHg)", 125, 145, int(curr_thresh["bp_systolic_warn"]))
+        new_sys_crit = st.slider("Systolic BP Critical (mmHg)", 140, 180, int(curr_thresh["bp_systolic_crit"]))
+
+        # Apply threshold updates live
+        st.session_state.detector.update_thresholds({
+            "hr_resting_max_warn": new_hr_rest_warn,
+            "hr_resting_max_crit": new_hr_rest_crit,
+            "spo2_warn": float(new_spo2_warn),
+            "spo2_crit": float(new_spo2_crit),
+            "bp_systolic_warn": new_sys_warn,
+            "bp_systolic_crit": new_sys_crit,
+        })
+
+    st.markdown("---")
+    st.markdown("### ☁️ Streaming Status")
+    st.markdown(
+        """
+        <div style="background: rgba(0, 210, 190, 0.08); border-left: 3px solid #00D2BE; padding: 10px; border-radius: 6px; font-size: 0.78rem;">
+            <b>Local Stream Abstraction:</b> Active<br>
+            <b>Target Topic:</b> <code>health-events</code><br>
+            <b>Cloud Backend (Kafka & Lambda):</b> Phase 2 Roadmap
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# -----------------------------------------------------------------------------
+# MAIN CONTENT AREA
+# -----------------------------------------------------------------------------
+state: MonitoringState = st.session_state.monitoring_state
+latest_reading = state.latest_reading or {}
+latest_eval = state.latest_evaluation or {}
+
+# Top Brand & Status Banner
+render_header(latest_reading, latest_eval)
+
+# Main Navigation Tabs
+tab_live, tab_alerts, tab_history, tab_architecture = st.tabs([
+    "📊 Live Monitoring",
+    "🚨 Anomaly & Alert Center",
+    "📈 History & Analytics",
+    "☁️ Kafka & Cloud Architecture"
+])
+
+# =============================================================================
+# TAB 1: LIVE MONITORING
+# =============================================================================
+with tab_live:
+    # Vital KPI Cards
+    render_vital_cards(latest_reading, latest_eval)
+
+    # Active Alert / Status Explanation Banner
+    render_alert_banner(latest_eval)
+
+    # Historical DataFrame for Charts
+    df_readings = state.get_readings_dataframe()
+    curr_thresh = st.session_state.detector.thresholds
+
+    # Real-Time Charts 2x2 Grid
+    col_chart1, col_chart2 = st.columns(2)
+
+    with col_chart1:
+        fig_hr = create_plotly_chart(
+            df=df_readings,
+            y_col="heart_rate",
+            title="Heart Rate (BPM)",
+            y_label="BPM",
+            line_color=THEME_TEAL,
+            threshold_warn=float(curr_thresh["hr_resting_max_warn"]),
+            threshold_crit=float(curr_thresh["hr_resting_max_crit"]),
+            threshold_label_warn="Resting Max",
+            threshold_label_crit="Critical Max"
+        )
+        st.plotly_chart(fig_hr, use_container_width=True)
+
+    with col_chart2:
+        fig_bp = create_plotly_chart(
+            df=df_readings,
+            y_col="systolic_bp",
+            title="Blood Pressure (Systolic & Diastolic)",
+            y_label="mmHg",
+            line_color="#E879F9",
+            secondary_col="diastolic_bp",
+            secondary_color=THEME_CYAN,
+            secondary_label="Diastolic",
+            threshold_warn=float(curr_thresh["bp_systolic_warn"]),
+            threshold_crit=float(curr_thresh["bp_systolic_crit"]),
+            threshold_label_warn="Systolic Warn",
+            threshold_label_crit="Stage 2 Crisis"
+        )
+        st.plotly_chart(fig_bp, use_container_width=True)
+
+    col_chart3, col_chart4 = st.columns(2)
+
+    with col_chart3:
+        fig_spo2 = create_plotly_chart(
+            df=df_readings,
+            y_col="spo2",
+            title="Oxygen Saturation (SpO2)",
+            y_label="%",
+            line_color=THEME_GREEN,
+            threshold_warn=float(curr_thresh["spo2_warn"]),
+            threshold_crit=float(curr_thresh["spo2_crit"]),
+            threshold_label_warn="Mild Hypoxia",
+            threshold_label_crit="Critical Hypoxia"
+        )
+        st.plotly_chart(fig_spo2, use_container_width=True)
+
+    with col_chart4:
+        fig_temp = create_plotly_chart(
+            df=df_readings,
+            y_col="temperature",
+            title="Body Temperature (°C)",
+            y_label="°C",
+            line_color="#F97316",
+            threshold_warn=float(curr_thresh["temp_fever_warn"]),
+            threshold_crit=float(curr_thresh["temp_fever_crit"]),
+            threshold_label_warn="Fever",
+            threshold_label_crit="High Fever"
+        )
+        st.plotly_chart(fig_temp, use_container_width=True)
+
+
+# =============================================================================
+# TAB 2: ANOMALY & ALERT CENTER
+# =============================================================================
+with tab_alerts:
+    stats = state.get_summary_statistics()
+
+    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+    with col_s1:
+        st.metric("Total Readings Evaluated", stats["total_generated"])
+    with col_s2:
+        st.metric("Total Flagged Events", stats["total_flagged"], delta=f"{stats['anomaly_rate']}% rate", delta_color="inverse")
+    with col_s3:
+        st.metric("Warning Alerts", stats["warning_count"])
+    with col_s4:
+        st.metric("Critical Alerts (High)", stats["high_count"])
+
+    st.markdown("### 📋 Anomaly Log & Rule Decisions")
+    df_alerts = state.get_alerts_dataframe()
+
+    if df_alerts.empty:
+        st.info("No anomalies flagged yet. System operating normally, or trigger a scenario from the sidebar to demonstrate detection rules.")
+    else:
+        # Style and render alert table
+        st.dataframe(
+            df_alerts[[
+                "sequence", "timestamp", "severity", "parameter",
+                "value", "reason", "status", "activity"
+            ]],
+            column_config={
+                "sequence": st.column_config.NumberColumn("#", width="small"),
+                "timestamp": st.column_config.TextColumn("Timestamp", width="medium"),
+                "severity": st.column_config.TextColumn("Severity", width="small"),
+                "parameter": st.column_config.TextColumn("Parameter Involved", width="medium"),
+                "value": st.column_config.TextColumn("Trigger Value", width="small"),
+                "reason": st.column_config.TextColumn("Detection Reason & Clinical Context", width="large"),
+                "status": st.column_config.TextColumn("Status", width="medium"),
+                "activity": st.column_config.TextColumn("Activity", width="small"),
+            },
+            use_container_width=True,
+            hide_index=True
+        )
+
+
+# =============================================================================
+# TAB 3: MONITORING HISTORY & ANALYTICS
+# =============================================================================
+with tab_history:
+    st.markdown("### 📊 Time-Series Readings History")
+    df_history = state.get_readings_dataframe()
+
+    if df_history.empty:
+        st.info("No readings recorded yet.")
+    else:
+        st.dataframe(
+            df_history[[
+                "sequence_number", "timestamp", "heart_rate", "systolic_bp",
+                "diastolic_bp", "spo2", "temperature", "activity", "severity", "scenario"
+            ]].iloc[::-1],
+            use_container_width=True,
+            hide_index=True
+        )
+
+        csv_data = df_history.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Readings History as CSV",
+            data=csv_data,
+            file_name=f"vitalsync_readings_{int(time.time())}.csv",
+            mime="text/csv",
+        )
+
+
+# =============================================================================
+# TAB 4: KAFKA & CLOUD ARCHITECTURE PREPARATION
+# =============================================================================
+with tab_architecture:
+    st.markdown("### ☁️ Streaming & Cloud Architecture Preparation")
+    st.markdown("""
+    VitalSync Prototype v1 prepares a modular event-streaming contract ready for seamless
+    integration with **Apache Kafka** and **AWS Lambda** in Phase 2.
+    """)
+
+    col_arch1, col_arch2 = st.columns([1, 1])
+
+    with col_arch1:
+        st.markdown("#### 📦 Active Kafka Topic Payload (Simulated Event)")
+        st.caption("Standardized JSON payload prepared for Kafka topic: `health-events`")
+        kafka_sample = state.stream_publisher.get_kafka_sample_json()
+        st.code(kafka_sample, language="json")
+
+    with col_arch2:
+        st.markdown("#### 🔄 Transition: Prototype v1 to Cloud Phase 2")
+        st.markdown("""
+        | Component | Prototype v1 (Implemented) | Phase 2 Cloud Upgrade |
+        |---|---|---|
+        | **Producer** | In-Memory `HealthDataSimulator` | Python `KafkaProducer` running on Raspberry Pi / wearable agent |
+        | **Message Broker** | `StreamEventPublisher` abstraction | **Apache Kafka** cluster (topic: `health-events`, partitioned by `device_id`) |
+        | **Compute / Rules** | Local `AnomalyDetector` module | **AWS Lambda** serverless microservice triggered on Kafka batch events |
+        | **Alert Routing** | Local Streamlit UI banner | **Amazon SNS** (SMS & Email alerts to clinicians) |
+        | **Persistence** | In-memory circular buffer | **Amazon DynamoDB** time-series NoSQL storage |
+        | **Dashboard** | Streamlit Local App | Streamlit Cloud / React Web Dashboard |
+        """)
+
+    st.markdown("---")
+    st.markdown("#### 🏗️ Architecture Diagram (Phase 1 Local vs Phase 2 Cloud)")
+    st.markdown("""
+    ```mermaid
+    flowchart LR
+        subgraph Phase1["Prototype v1 (Implemented Today)"]
+            A1["HealthDataSimulator<br/>(FIT-101)"] -->|"In-Memory Event"| B1["StreamEventPublisher<br/>(health-events abstraction)"]
+            B1 -->|"Direct Evaluation"| C1["AnomalyDetector<br/>(Rule Engine)"]
+            C1 -->|"State Buffer"| D1["Streamlit Dashboard<br/>(Charts, Alerts & History)"]
+        end
+        
+        subgraph Phase2["Phase 2 (Cloud Upgrade Roadmap)"]
+            A2["Wearable Device /<br/>Python Producer"] -->|"Publish JSON"| B2["Apache Kafka<br/>topic: health-events"]
+            B2 -->|"Event Trigger"| C2["AWS Lambda<br/>(Serverless Anomaly Detector)"]
+            C2 -->|"Critical Alerts"| D2["Amazon SNS<br/>(SMS / Email)"]
+            C2 -->|"Persist All Events"| E2["Amazon DynamoDB<br/>(NoSQL Storage)"]
+            E2 -->|"Query & Stream"| F2["Monitoring Dashboard<br/>(Clinician Portal)"]
+        end
+    ```
+    """)
+
+
+# -----------------------------------------------------------------------------
+# AUTO-SIMULATION RUNNER
+# -----------------------------------------------------------------------------
+if st.session_state.is_simulating:
+    time.sleep(float(st.session_state.simulation_speed))
+    step_simulation()
+    st.rerun()
