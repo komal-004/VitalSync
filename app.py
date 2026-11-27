@@ -51,8 +51,9 @@ st.markdown(get_custom_css(), unsafe_allow_html=True)
 # -----------------------------------------------------------------------------
 # SESSION STATE INITIALIZATION
 # -----------------------------------------------------------------------------
-if "simulator" not in st.session_state:
+if "simulator" not in st.session_state or "AUTO_REALTIME" not in getattr(st.session_state.simulator, "SCENARIOS", {}):
     st.session_state.simulator = HealthDataSimulator(device_id="FIT-101")
+    st.session_state.current_scenario_key = "AUTO_REALTIME"
 
 if "detector" not in st.session_state:
     st.session_state.detector = AnomalyDetector()
@@ -91,6 +92,8 @@ def step_simulation() -> None:
 def reset_simulation() -> None:
     """Reset the simulator, state buffers, and counters."""
     st.session_state.simulator.reset_state()
+    st.session_state.current_scenario_key = "AUTO_REALTIME"
+    st.session_state.simulator.set_scenario("AUTO_REALTIME")
     st.session_state.monitoring_state.reset_all()
     # Generate fresh baseline reading
     first_reading = st.session_state.simulator.generate_reading()
@@ -172,10 +175,12 @@ with st.sidebar:
         help="Switch scenarios to demonstrate anomaly detection rules live"
     )
 
+    # Always keep simulator scenario synced with selected dropdown
+    st.session_state.simulator.set_scenario(selected_scenario)
+
     # Immediately step simulation upon switching scenarios so the user sees the alert in this exact render pass
     if selected_scenario != st.session_state.current_scenario_key:
         st.session_state.current_scenario_key = selected_scenario
-        st.session_state.simulator.set_scenario(selected_scenario)
         step_simulation()
 
     st.markdown("---")
