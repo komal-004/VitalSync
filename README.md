@@ -6,46 +6,46 @@
 ![Architecture](https://img.shields.io/badge/Architecture-Event--Driven%20%2F%20Cloud--Ready-00D2BE)
 ![Tests](https://img.shields.io/badge/Tests-14%20Passing-brightgreen)
 
-> **B.Tech Computer Science Engineering Capstone / Technical Demonstration Project**  
-> *Domain: HealthTech, Internet of Medical Things (IoMT), Real-Time Distributed Streaming, Serverless Cloud Computing*
+> **B.Tech Computer Science & Engineering Capstone Project**  
+> *Domain: HealthTech, Internet of Medical Things (IoMT), Real-Time Distributed Streaming, Cloud Computing*
 
 ---
 
 ## 1. Project Overview
 
-**VitalSync** is a real-time health telemetry processing prototype designed to continuously ingest streaming physiological vitals from simulated wearable edge sensors, detect anomalous trends via a rule-based detection engine, and provide interactive real-time monitoring and alert triage.
+**VitalSync** is a real-time health telemetry monitoring and anomaly detection prototype designed to continuously ingest physiological vitals, evaluate them against a context-aware rule engine, and present real-time alerts and interactive visualizations.
 
-The system monitors multi-parameter physiological vitals:
+The system tracks key physiological parameters:
 - **Heart Rate (BPM)** — Resting, exertion, tachycardia, and bradycardia.
-- **Blood Pressure (Systolic & Diastolic mmHg)** — Stage 1, Stage 2, and hypertensive crisis thresholds.
+- **Blood Pressure (Systolic & Diastolic mmHg)** — Normal, Stage 1 Hypertension, and Stage 2 Hypertensive Crisis.
 - **Oxygen Saturation (SpO₂ %)** — Normal, mild hypoxia, and critical respiratory distress.
-- **Body Temperature (°C)** — Normal, febrile, and hypothermic states.
+- **Body Temperature (°C)** — Normal, febrile state, and hypothermia.
 - **Physical Activity Context** — Resting, Walking, and Cardio Exercise.
 
-The project is structured into two phases:
-- **Prototype v1 (Current):** A local, modular, reactive web application built using Python, Streamlit, Pandas, and Plotly, with a pluggable streaming event abstraction layer.
-- **Phase 2 (Cloud Upgrade):** A distributed cloud deployment leveraging **Apache Kafka**, **AWS Lambda**, **Amazon SNS**, and **Amazon DynamoDB**.
+The project is structured in two stages:
+- **Prototype v1 (Current):** A fully functional local and cloud-deployable web application built with Python, Streamlit, Pandas, and Plotly, featuring a modular streaming event abstraction layer.
+- **Phase 2 (Cloud Upgrade Roadmap):** A distributed cloud architecture integrating **Apache Kafka**, **AWS Lambda**, **Amazon SNS**, and **Amazon DynamoDB**.
 
 ---
 
 ## 2. Problem Statement
 
-Conventional hospital telemetry and outpatient remote patient monitoring (RPM) systems face three major technical challenges:
-1. **Batch Latency:** Traditional systems transfer vitals at scheduled intervals (e.g., every 30 minutes), delaying intervention during sudden acute decompensations.
-2. **False Positives & Alert Fatigue:** Static thresholds that ignore user activity (such as exercising versus sleeping) trigger frequent false alarms, leading to clinician burnout.
-3. **Ingestion Bottlenecks:** Centralized relational databases struggle with high-frequency concurrent writes from thousands of streaming wearable devices.
+Traditional hospital telemetry and remote patient monitoring (RPM) systems face three fundamental limitations:
+1. **Batch Transfer Latency:** Vitals are often transferred in scheduled batches (e.g., every 15–30 minutes), which can delay intervention during acute clinical crises.
+2. **False Positives & Alert Fatigue:** Static thresholds that fail to account for patient activity (e.g., elevated heart rate during exercise vs. rest) generate frequent false alarms.
+3. **Ingestion Bottlenecks:** Centralized relational databases struggle to handle high-frequency writes from thousands of concurrent wearable sensor streams.
 
-VitalSync demonstrates how an **event-driven, context-aware streaming architecture** solves these limitations through sub-second rule evaluation and activity normalization.
+VitalSync demonstrates how an **event-driven, activity-aware streaming architecture** addresses these bottlenecks through real-time telemetry processing and contextual normalization.
 
 ---
 
 ## 3. System Objectives
 
-- **Simulate Continuous Vitals:** Generate realistic, physiologically continuous telemetry (Brownian drift + noise) rather than erratic random numbers.
-- **Context-Aware Anomaly Detection:** Dynamically adjust thresholds depending on user activity (e.g., 140 BPM is normal during exercise, but alarming while resting).
-- **Multi-Parameter & Temporal Detection:** Identify composite health crises (e.g., High HR + Low SpO2) and sudden delta spikes.
-- **Alert Triage:** Categorize findings into `NORMAL`, `WARNING`, and `HIGH` severity with transparent, human-readable explanations.
-- **Modular Streaming Blueprint:** Decouple the event producer from downstream analytics so Apache Kafka can be plugged in without refactoring core logic.
+- **Physiologically Realistic Simulation:** Generate time-series data using Brownian drift and physiological inertia rather than erratic white noise.
+- **Context-Aware Anomaly Detection:** Dynamically adjust thresholds based on patient activity (e.g., 140 BPM is normal during cardio exercise, but flagged during rest).
+- **Multi-Parameter & Temporal Detection:** Detect composite health crises (e.g., high HR combined with low SpO₂) and sudden rate-of-change spikes.
+- **Transparent Alert Triage:** Categorize events into `NORMAL`, `WARNING`, and `HIGH` severity with human-readable clinical rationale.
+- **Cloud-Ready Streaming Contract:** Decouple data generation from analytics using a standardized Kafka event envelope (`health-events`).
 
 ---
 
@@ -59,56 +59,56 @@ flowchart LR
         A["HealthDataSimulator<br/>(FIT-101)"]
     end
 
-    subgraph Streaming["Streaming Abstraction"]
+    subgraph Streaming["Streaming Abstraction Layer"]
         B["StreamEventPublisher<br/>(topic: health-events)"]
     end
 
-    subgraph Analytics["Data Service & Analytics Engine"]
+    subgraph Analytics["Data Service & Detection Engine"]
         C["AnomalyDetector<br/>(Context-Aware Rule Engine)"]
-        D["MonitoringState<br/>(Sliding Time-Series Buffers)"]
+        D["MonitoringState<br/>(Sliding Buffer & State Service)"]
     end
 
-    subgraph Dashboard["Interactive Visualization"]
+    subgraph Dashboard["Interactive User Interface"]
         E["Streamlit UI (app.py)<br/>• Metric Cards & Alert Banners<br/>• Plotly Dynamic Charts<br/>• CSV History Export"]
     end
 
     A -->|"1. Generate Telemetry"| B
-    B -->|"2. Emit Event Payload"| C
+    B -->|"2. Emit Structured Payload"| C
     C -->|"3. Evaluate Rules"| D
-    D -->|"4. Render State"| E
+    D -->|"4. Render Live State"| E
 ```
 
 ### 4.2 Phase 2 Cloud Architecture (Future Roadmap)
 
 ```mermaid
 flowchart TD
-    subgraph Wearable["IoT Wearable Device"]
+    subgraph Wearable["IoT Edge Sensor"]
         W["Wearable Sensor / Simulator"]
     end
 
-    subgraph Ingestion["Message Broker Layer"]
+    subgraph Ingestion["Distributed Message Broker"]
         KP["Python Kafka Producer"]
         K["Apache Kafka Cluster<br/>Topic: health-events<br/>Key: device_id"]
     end
 
-    subgraph Compute["Serverless Processing"]
+    subgraph Compute["Serverless Real-Time Processing"]
         L["AWS Lambda Function<br/>(vitalsync-anomaly-detector)"]
     end
 
-    subgraph Persistence["Storage & Alerts"]
-        SNS["Amazon SNS<br/>(SMS & Email Alerts)"]
+    subgraph StorageAlerts["Storage & Notification Layer"]
+        SNS["Amazon SNS<br/>(SMS & Email Clinical Alerts)"]
         DDB[("Amazon DynamoDB<br/>Time-Series History")]
     end
 
-    subgraph Consumer["Web Portal"]
-        DASH["Clinician Dashboard<br/>(Streamlit / React)"]
+    subgraph Consumer["Clinical Dashboard"]
+        DASH["Clinician Web Portal<br/>(Streamlit / React)"]
     end
 
     W --> KP
     KP -->|"TLS / SASL"| K
     K -->|"Event Source Mapping"| L
     L -->|"Severity == HIGH"| SNS
-    L -->|"All Vitals"| DDB
+    L -->|"Persist All Events"| DDB
     DDB --> DASH
 ```
 
@@ -118,31 +118,54 @@ flowchart TD
 
 | Technology | Purpose | Version |
 |---|---|---|
-| **Python** | Core application logic, simulator, and rule engine | 3.10+ (Tested through 3.14) |
+| **Python** | Application core, simulator, and rule engine | 3.10+ (Tested through 3.14) |
 | **Streamlit** | Reactive web dashboard and control panel | >=1.32.0 |
-| **Plotly** | Dark-mode interactive time-series charts with threshold bands | >=5.18.0 |
+| **Plotly** | Dark-mode interactive time-series graphs with threshold lines | >=5.18.0 |
 | **Pandas** | Time-series data manipulation and tabular analysis | >=2.1.0 |
-| **NumPy** | Numerical operations and statistical calculations | >=1.24.0 |
-| **Unittest / Pytest** | Automated unit test suite (14 test cases) | >=7.4.0 |
+| **NumPy** | Numerical calculations and baseline array operations | >=1.24.0 |
+| **Unittest / Pytest** | Automated test suite (14 test cases) | Built-in / >=7.4.0 |
 
 ---
 
-## 6. Anomaly Detection Approach
+## 6. Anomaly Detection Engine
 
-VitalSync's detection engine (`detection/detection_rules.py`) uses a 6-stage evaluation pipeline:
+The detection engine (`detection/detection_rules.py`) evaluates incoming readings through a 6-stage pipeline:
 
-1. **Sensor Integrity Check:** Catches missing values, `None` fields, and physically impossible inputs (e.g. HR $\le 0$ or $> 260$ BPM, SpO2 $> 100\%$, Systolic $\le$ Diastolic).
-2. **Activity Context Normalization:** Distinguishes between `Resting`, `Walking`, and `Exercise`. High HR and elevated systolic pressure are tolerated during exercise.
-3. **Single-Parameter Thresholds:** Evaluates vital readings against configurable demonstration limits for resting tachycardia, bradycardia, hypoxia, and hypertension.
-4. **Temporal Delta Detection:** Flags sudden rate-of-change spikes (e.g., HR jumping $> 25$ BPM or SpO2 dropping $\ge 4\%$ in a single interval without activity change).
-5. **Multi-Parameter Correlation:** Flags composite crises, such as Cardiorespiratory Distress ($\text{HR} > 115 \text{ BPM} + \text{SpO2} < 93\%$) and Febrile Hypertension ($\text{Systolic} \ge 150 \text{ mmHg} + \text{Temp} \ge 38.2^\circ\text{C}$).
+1. **Payload Integrity Check:** Validates missing fields, `None` values, and physically impossible entries ($\text{HR} \le 0$ or $> 260$ BPM, $\text{SpO}_2 > 100\%$, $\text{Systolic} \le \text{Diastolic}$).
+2. **Activity Context Normalization:** Distinguishes between `Resting`, `Walking`, and `Exercise`. Exertional cardiovascular response is normalized during workouts.
+3. **Single-Parameter Thresholds:** Evaluates vitals against configurable demonstration limits:
+   - **Heart Rate:** Resting normal 60–100 BPM; Warning 101–130 BPM; Critical > 130 BPM or < 50 BPM (bradycardia).
+   - **Blood Pressure:** Normal < 130/85 mmHg; Stage 1 Warning ≥ 130/85 mmHg; Stage 2 Crisis ≥ 145/95 mmHg.
+   - **Oxygen Saturation (SpO₂):** Normal ≥ 95%; Mild Hypoxia 90–94%; Critical Hypoxia < 90%.
+   - **Temperature:** Normal 36.1–37.5°C; Fever Warning ≥ 37.6°C; High Fever ≥ 38.5°C; Hypothermia < 35.0°C.
+4. **Temporal Delta Detection:** Identifies sudden single-step spikes ($\Delta\text{HR} \ge 25$ BPM or $\Delta\text{SpO}_2 \ge 4\%$ drop without activity change).
+5. **Multi-Parameter Correlation:** Flags composite crises such as Cardiorespiratory Distress ($\text{HR} > 115 \text{ BPM} + \text{SpO}_2 < 93\%$) and Febrile Hypertension ($\text{Systolic} \ge 150 \text{ mmHg} + \text{Temp} \ge 38.2^\circ\text{C}$).
 6. **Persistence Escalation:** If abnormal readings persist for 3 or more consecutive intervals, warning alerts are escalated to `HIGH`.
 
 ---
 
-## 7. Sample Data Schema (Topic: `health-events`)
+## 7. Simulation Scenarios
 
-The standardized JSON payload generated for each event:
+The simulator includes 10 preset scenarios selectable from the sidebar:
+
+| # | Scenario Name | Target Physiological State | Primary Alert Triggered |
+|---|---|---|---|
+| 1 | **Normal Resting** | HR 72 BPM, BP 118/78 mmHg, SpO₂ 98.5% | `NORMAL` |
+| 2 | **Walking Activity** | HR 95 BPM, BP 125/81 mmHg, SpO₂ 98.0% | `NORMAL` |
+| 3 | **Exercise (Cardio Workout)** | HR 140 BPM, BP 142/84 mmHg, SpO₂ 96.5% | `NORMAL` (Context-normalized) |
+| 4 | **Unusual BP (Stage 1 Warning)** | HR 74 BPM, **BP 136/88 mmHg**, SpO₂ 98.5% | `WARNING` (`RULE_STAGE_1_HYPERTENSION`) |
+| 5 | **Unusual BP (Stage 2 Crisis)** | HR 78 BPM, **BP 168/104 mmHg**, SpO₂ 98.0% | `HIGH` (`RULE_CRITICAL_HYPERTENSION`) |
+| 6 | **Unusual Heart Rate (Tachycardia)** | **HR 168 BPM**, BP 138/88 mmHg, SpO₂ 97.0% | `HIGH` (`RULE_RESTING_CRITICAL_TACHYCARDIA`) |
+| 7 | **Unusual SpO₂ (Hypoxia Event)** | HR 112 BPM, BP 128/82 mmHg, **SpO₂ 87.5%** | `HIGH` (`RULE_CRITICAL_HYPOXIA`) |
+| 8 | **Multiple Anomalies (Critical Crisis)** | **HR 172 BPM**, **BP 175/108**, **SpO₂ 86%**, **Temp 39.1°C** | `HIGH` (`RULE_MULTI_CARDIORESPIRATORY_DISTRESS`) |
+| 9 | **Sudden Delta Spike** | Instantaneous jump of +40 BPM at rest | `WARNING` (`RULE_SUDDEN_HR_SPIKE`) |
+| 10 | **Sensor Glitch / Invalid Data** | Negative values, SpO₂ > 100%, or missing fields | `HIGH` (`RULE_DATA_VALIDATION_ERROR`) |
+
+---
+
+## 8. Sample Kafka Payload (Topic: `health-events`)
+
+Every generated event conforms to this standard JSON envelope:
 
 ```json
 {
@@ -151,15 +174,15 @@ The standardized JSON payload generated for each event:
   "timestamp": "2026-11-26 12:45:00",
   "data": {
     "device_id": "FIT-101",
-    "sequence_number": 105,
+    "sequence_number": 42,
     "timestamp": "2026-11-26 12:45:00",
-    "heart_rate": 165.2,
-    "systolic_bp": 142.0,
-    "diastolic_bp": 90.0,
-    "spo2": 88.5,
+    "heart_rate": 168.2,
+    "systolic_bp": 138.0,
+    "diastolic_bp": 88.0,
+    "spo2": 97.2,
     "temperature": 37.1,
     "activity": "Resting",
-    "scenario": "Multiple Unusual Readings (Critical Distress)",
+    "scenario": "Unusual Heart Rate (Tachycardia)",
     "is_simulated": true
   },
   "cloud_metadata": {
@@ -172,24 +195,24 @@ The standardized JSON payload generated for each event:
 
 ---
 
-## 8. Project Folder Structure
+## 9. Project Directory Structure
 
 ```
 VitalSync/
 ├── app.py                         # Main Streamlit dashboard application
-├── requirements.txt               # Python package dependencies
-├── .gitignore                     # Git ignore specifications
+├── requirements.txt               # Project dependencies
+├── .gitignore                     # Git ignore rules
 ├── .streamlit/
-│   └── config.toml                # Dark navy & teal theme configuration
+│   └── config.toml                # Dark navy (#0A1128) and teal theme configuration
 ├── simulator/
 │   ├── __init__.py
-│   └── health_generator.py        # Physiological drift simulator & scenarios
+│   └── health_generator.py        # Physiological drift generator & 10 scenarios
 ├── detection/
 │   ├── __init__.py
-│   └── detection_rules.py         # Modular rule engine & activity evaluator
+│   └── detection_rules.py         # 6-stage rule engine & activity normalization
 ├── services/
 │   ├── __init__.py
-│   └── data_service.py            # Sliding window buffer & Kafka abstraction
+│   └── data_service.py            # Sliding time-series buffer & Kafka abstraction
 ├── components/
 │   ├── __init__.py
 │   └── dashboard_components.py    # Metric cards, alert banners & Plotly charts
@@ -204,115 +227,146 @@ VitalSync/
 
 ---
 
-## 9. Installation & Setup Instructions (macOS & Windows)
+## 10. Installation & Running Instructions
 
-### 9.1 Prerequisites
-- **Python 3.10 or higher** installed. Check via:
-  ```bash
-  python3 --version
-  ```
-- **Terminal (macOS)** or **PowerShell (Windows)**.
+### Prerequisites
+- Python 3.10 or higher installed (`python --version` or `python3 --version`).
+- Git installed.
 
-### 9.2 Setup on macOS (MacBook Air M2 / Intel)
+---
 
-1. **Open Terminal** and navigate into the `VitalSync` directory:
+### Running on macOS (MacBook Air M2 / Intel)
+
+1. **Clone the repository and enter the directory:**
    ```bash
+   git clone https://github.com/komal-004/VitalSync.git
    cd VitalSync
    ```
 
-2. **Create a virtual environment:**
+2. **Create and activate a virtual environment:**
    ```bash
    python3 -m venv venv
-   ```
-
-3. **Activate the virtual environment:**
-   ```bash
    source venv/bin/activate
    ```
-   *(Your terminal prompt should now show `(venv)`)*
 
-4. **Upgrade pip and install dependencies:**
+3. **Install dependencies:**
    ```bash
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
-5. **Run the automated test suite:**
+4. **Run the automated test suite:**
    ```bash
    python -m unittest discover tests -v
    ```
-   *Expected output: `Ran 14 tests ... OK`*
 
-6. **Launch the VitalSync Dashboard:**
+5. **Launch the dashboard:**
    ```bash
-   streamlit run app.py
+   python3 -m streamlit run app.py
    ```
-   *The application will open automatically in your browser at `http://localhost:8501`.*
+   *The application opens automatically at `http://localhost:8501`.*
 
 ---
 
-## 10. How to Demonstrate the Project to Faculty
+### Running on Windows
 
-Follow this step-by-step walkthrough during your viva or project presentation:
+1. **Open PowerShell and navigate to the project directory:**
+   ```powershell
+   cd "VitalSync"
+   ```
 
-### Step 1: Baseline Normal Operation
-1. Launch the app (`streamlit run app.py`).
-2. Point out the top header: Device ID (`FIT-101`), Status (`NORMAL`), and Scenario (`Normal Resting`).
-3. Click **"▶ Start Live"** or click **"⏩ Step (+1)"** several times.
-4. Show how the vital KPI cards update and how Plotly charts show realistic physiological drift within normal boundaries.
+2. **Install dependencies:**
+   ```powershell
+   pip install -r requirements.txt
+   ```
 
-### Step 2: Triggering Context-Aware Exercise
-1. In the sidebar dropdown, select **"🏃 Exercise (Cardio Workout)"**.
-2. Click **"⏩ Step (+1)"** 3–4 times.
-3. **Key Explanation to Faculty:** *“Notice that the Heart Rate rises above 135 BPM and systolic pressure rises to 140 mmHg, but the status remains **NORMAL**! Our detection engine uses activity context normalization, understanding that high heart rate during cardio exercise is expected and not an anomaly.”*
+3. **Run the automated test suite:**
+   ```powershell
+   python -m unittest discover tests -v
+   ```
 
-### Step 3: Triggering a Simulated Anomaly (Tachycardia at Rest)
-1. In the sidebar, select **"⚠️ Unusual Heart Rate (Tachycardia)"**.
-2. Click **"⏩ Step (+1)"**.
-3. **Demonstration Point:** The Heart Rate jumps to ~165 BPM while activity is **Resting**. The dashboard immediately turns **RED** with a **CRITICAL ALERT** banner explaining:
-   *`Severe tachycardia (165.0 BPM) while Resting. Well above resting critical ceiling (130 BPM).`*
-4. Switch to the **"🚨 Anomaly & Alert Center"** tab to show the alert log entry with rule ID `RULE_RESTING_CRITICAL_TACHYCARDIA`.
-
-### Step 4: Demonstrating Hypoxia & Multi-Parameter Correlation
-1. Select **"🚨 Multiple Anomalies (Critical Crisis)"**.
-2. Click **"⏩ Step (+1)"**.
-3. Point out that the system detected multiple simultaneous violations: Severe Hypertension + Critical Hypoxia (< 90%) + High Fever, triggering the composite clinical distress rule `RULE_MULTI_CARDIORESPIRATORY_DISTRESS`.
-
-### Step 5: Live Threshold Tuning
-1. Expand the **"⚙️ Configurable Detection Thresholds"** panel in the sidebar.
-2. Adjust the **SpO2 Warning Threshold** slider from 94% to 96%.
-3. Explain to faculty: *“All thresholds are dynamically configurable at runtime without changing the underlying detection engine.”*
-
-### Step 6: Explaining the Cloud & Kafka Roadmap
-1. Click the **"☁️ Kafka & Cloud Architecture"** tab.
-2. Show the serialized JSON payload: *“Here is the exact message structure formatted for the Kafka topic `health-events`. In Phase 2, this is sent over SSL to an AWS MSK Kafka cluster, where AWS Lambda processes batches serverlessly.”*
+4. **Launch the dashboard:**
+   ```powershell
+   python -m streamlit run app.py
+   ```
 
 ---
 
-## 11. Implemented Features vs. Planned Roadmap
+### Running Live on the Web (Streamlit Cloud - 100% Free)
+
+1. Visit **[share.streamlit.io](https://share.streamlit.io)** and sign in with GitHub.
+2. Click **Create app**.
+3. Select your repository: `komal-004/VitalSync`, branch: `main`, main file: `app.py`.
+4. Click **Deploy**. The app will be live on a public URL in 1–2 minutes.
+
+---
+
+## 11. Faculty Demonstration Walkthrough
+
+1. **Baseline Normal Operation:**
+   - Launch the dashboard (`python -m streamlit run app.py`).
+   - Notice the header: Device `FIT-101`, Status `NORMAL`.
+   - Click **"▶ Start Live"** or **"⏩ Step (+1)"**.
+   - Observe realistic physiological variation within normal bands on all 4 Plotly charts.
+
+2. **Activity Context Normalization (Exercise Test):**
+   - In the sidebar dropdown, select **"🏃 Exercise (Cardio Workout)"**.
+   - Notice Heart Rate reaches ~140 BPM and Systolic BP reaches ~142 mmHg, yet status remains **NORMAL**.
+   - *Key takeaway for faculty:* The engine uses activity context normalization to prevent false alarms during physical exertion.
+
+3. **Stage 1 Blood Pressure Warning:**
+   - Select **"⚠️ Unusual Blood Pressure (Stage 1 Warning: 136/88)"**.
+   - The Blood Pressure card immediately highlights in **Amber**.
+   - The alert banner displays: `WARNING FLAGGED: Stage 1 Hypertension (136.0/88.0 mmHg) exceeds threshold (130/85 mmHg)`.
+
+4. **Stage 2 Blood Pressure Crisis:**
+   - Select **"🚨 Unusual Blood Pressure (Stage 2 Crisis: 168/104)"**.
+   - The Blood Pressure card immediately turns **Red**.
+   - The alert banner displays: `CRITICAL ALERT: Hypertensive crisis (168.0/104.0 mmHg) exceeds critical threshold (145/95 mmHg)`.
+
+5. **Multi-Parameter Cardiorespiratory Distress:**
+   - Select **"🚨 Multiple Anomalies (Critical Crisis)"**.
+   - The engine flags composite distress: Tachycardia + Acute Hypoxia (< 90%) + High Fever (`RULE_MULTI_CARDIORESPIRATORY_DISTRESS`).
+
+6. **Runtime Threshold Tuning:**
+   - Expand **"⚙️ Configurable Detection Thresholds"** in the sidebar.
+   - Adjust the **Systolic BP Warning** slider; the current reading re-evaluates immediately on screen.
+
+7. **Kafka & Cloud Readiness:**
+   - Open the **"☁️ Kafka & Cloud Architecture"** tab.
+   - Inspect the standardized JSON message ready for Apache Kafka topic `health-events`.
+
+---
+
+## 12. Implemented Features vs. Planned Roadmap
 
 | Component | Status in Prototype v1 | Planned for Phase 2 |
 |---|---|---|
-| **Synthetic Sensor** | ✅ Implemented (Brownian drift & 8 scenarios) | ESP32 / Wearable Bluetooth sensor |
-| **Anomaly Detection** | ✅ Implemented (Multi-stage rule engine) | AWS Lambda microservice |
-| **Temporal Deltas** | ✅ Implemented (Rate of change checks) | Time-series sliding window in ElastiCache |
-| **Activity Awareness** | ✅ Implemented (Resting vs Walking vs Exercise) | Accelerometer ML classifier |
-| **Alert Presentation** | ✅ Implemented (Color-coded badges & banners) | Amazon SNS (SMS & Email alerts) |
-| **Kafka Integration** | ⚠️ Abstraction Prepared (`StreamEventPublisher`) | Managed Kafka (AWS MSK / Confluent) |
-| **Persistent Storage** | ⚠️ Sliding window buffer (in-memory) | Amazon DynamoDB NoSQL table |
+| **Data Simulator** | ✅ Implemented (Brownian drift & 10 scenarios) | ESP32 / Physical BLE wearable sensor |
+| **Detection Engine** | ✅ Implemented (6-stage context-aware engine) | AWS Lambda serverless microservice |
+| **Alert Presentation** | ✅ Implemented (Color-coded KPI cards & banners) | Amazon SNS (SMS & Email notifications) |
+| **Time-Series Charts** | ✅ Implemented (4 dynamic Plotly charts) | Amazon CloudWatch / Grafana dashboard |
+| **Data Persistence** | ✅ Implemented (Sliding window buffer & CSV export) | Amazon DynamoDB NoSQL database |
+| **Message Broker** | ⚠️ Abstraction Prepared (`StreamEventPublisher`) | Apache Kafka cluster (AWS MSK / Confluent) |
 
 ---
 
-## 12. Limitations
+## 13. Limitations
 
-- **Simulated Hardware:** Prototype v1 uses synthetic generation rather than real physical Bluetooth sensors.
-- **Local Runtime:** In v1, events flow through Python memory structures rather than external network sockets.
-- **Demonstration Rules:** Thresholds are based on clinical reference ranges for educational purposes and do not substitute certified medical algorithms.
+- **Simulated Telemetry:** Prototype v1 uses deterministic synthetic generation rather than physical medical hardware.
+- **In-Memory Streaming:** Events in v1 pass through internal Python queues rather than network socket brokers.
+- **Demonstration Criteria:** Thresholds follow clinical reference ranges for technical demonstration and do not constitute certified diagnostic algorithms.
 
 ---
 
-## 13. Safety & Educational Disclaimer
+## 14. Safety & Medical Disclaimer
 
 > [!IMPORTANT]
-> **Academic & Technical Demonstration Notice:**  
-> VitalSync is developed exclusively for academic, engineering, and educational purposes to demonstrate stream processing and serverless event-driven architectures. It is **not** a certified medical diagnostic device and must not be used for medical decision-making or diagnosis.
+> **Academic Demonstration Notice:**  
+> VitalSync is developed exclusively for educational and technical demonstration purposes to illustrate stream processing and event-driven architectures. It is **not** a certified medical diagnostic device and must never be used for clinical decision-making.
+
+---
+
+## 15. License
+
+This project is licensed under the MIT License — see the repository for details.
