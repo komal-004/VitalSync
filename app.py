@@ -144,7 +144,8 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 🧪 Simulation Scenarios")
     scenario_options = {
-        "NORMAL_RESTING": "🟢 Normal Resting (HR ~72 BPM, BP ~118/78)",
+        "AUTO_REALTIME": "🔄 Live Real-Time Stream (Auto-Progresses on Step)",
+        "NORMAL_RESTING": "🟢 Normal Resting (HR ~65-85 BPM)",
         "WALKING": "🚶 Walking Activity (HR ~95 BPM, BP ~125/81)",
         "EXERCISE": "🏃 Exercise Cardio (HR ~140 BPM, BP ~142/84)",
         "HR_BRADYCARDIA": "⚠️ Low Heart Rate (Bradycardia: 44 BPM Warning)",
@@ -159,7 +160,7 @@ with st.sidebar:
     }
 
     if "current_scenario_key" not in st.session_state:
-        st.session_state.current_scenario_key = "NORMAL_RESTING"
+        st.session_state.current_scenario_key = "AUTO_REALTIME"
 
     current_idx = list(scenario_options.keys()).index(st.session_state.current_scenario_key) if st.session_state.current_scenario_key in scenario_options else 0
 
@@ -293,25 +294,6 @@ tab_live, tab_alerts, tab_history, tab_architecture = st.tabs([
 # TAB 1: LIVE MONITORING
 # =============================================================================
 with tab_live:
-    # 1-Click Quick Scenario Trigger Bar on Main Dashboard
-    st.caption("⚡ Quick Scenario Triggers (1-Click Alert & Warning Demo):")
-    q1, q2, q3, q4, q5, q6 = st.columns(6)
-    quick_triggers = [
-        (q1, "🟢 Normal", "NORMAL_RESTING"),
-        (q2, "⚠️ HR Warn (108)", "HR_ELEVATED"),
-        (q3, "🚨 HR Alert (168)", "HR_CRITICAL"),
-        (q4, "⚠️ BP Warn (136/88)", "UNUSUAL_BP_STAGE1"),
-        (q5, "🚨 BP Crisis (168/104)", "UNUSUAL_BP_STAGE2"),
-        (q6, "🚨 Multi-Crisis", "MULTIPLE_ANOMALIES"),
-    ]
-    for col, label, scen_key in quick_triggers:
-        with col:
-            if st.button(label, key=f"quick_{scen_key}", use_container_width=True):
-                st.session_state.current_scenario_key = scen_key
-                st.session_state.simulator.set_scenario(scen_key)
-                step_simulation()
-                st.rerun()
-
     # Vital KPI Cards
     render_vital_cards(latest_reading, latest_eval)
 

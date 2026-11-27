@@ -19,7 +19,8 @@ class HealthDataSimulator:
     """
 
     SCENARIOS = {
-        "NORMAL_RESTING": "🟢 Normal Resting (HR ~72 BPM, BP ~118/78)",
+        "AUTO_REALTIME": "🔄 Live Real-Time Stream (Progressive)",
+        "NORMAL_RESTING": "🟢 Normal Resting (HR ~65-85 BPM)",
         "WALKING": "🚶 Walking Activity (HR ~95 BPM, BP ~125/81)",
         "EXERCISE": "🏃 Exercise Cardio (HR ~140 BPM, BP ~142/84)",
         "HR_BRADYCARDIA": "⚠️ Low Heart Rate (Bradycardia: 44 BPM Warning)",
@@ -36,7 +37,7 @@ class HealthDataSimulator:
 
     def __init__(self, device_id: str = "FIT-101"):
         self.device_id = device_id
-        self.current_scenario = "NORMAL_RESTING"
+        self.current_scenario = "AUTO_REALTIME"
         self.sequence_number = 0
         self.reset_state()
 
@@ -83,9 +84,49 @@ class HealthDataSimulator:
         timestamp = custom_timestamp or datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # -------------------------------------------------------------
+        # Scenario 0: Live Real-Time Progressive Stream (Default)
+        # Gradually climbs on each step: Normal (72-95) -> Warning (100+) -> Alert (132+) -> Recovery
+        # -------------------------------------------------------------
+        if active_scenario == "AUTO_REALTIME":
+            self._current_activity = "Resting"
+            cycle_pos = (self.sequence_number - 1) % 14  # 14-step realistic physiological wave
+
+            if cycle_pos == 0:
+                target_hr, target_sys, target_dia, target_spo2, target_temp = 72.0, 118.0, 78.0, 98.5, 36.8
+            elif cycle_pos < 5:
+                # Progressive climb: ~79 -> 86 -> 94 -> 102 (crosses 100+ -> WARNING)
+                target_hr = 72.0 + cycle_pos * 7.5
+                target_sys = 118.0 + cycle_pos * 3.5
+                target_dia = 78.0 + cycle_pos * 2.0
+                target_spo2 = 98.5 - cycle_pos * 0.4
+                target_temp = 36.8 + cycle_pos * 0.08
+            elif cycle_pos < 9:
+                # Escalation to critical: ~112 -> 122 -> 134 -> 144 (crosses 130+ -> CRITICAL ALERT)
+                step_in_phase = cycle_pos - 4
+                target_hr = 102.0 + step_in_phase * 10.5
+                target_sys = 132.0 + step_in_phase * 4.5
+                target_dia = 86.0 + step_in_phase * 2.5
+                target_spo2 = 96.9 - step_in_phase * 1.1
+                target_temp = 37.1 + step_in_phase * 0.15
+            else:
+                # Gradual recovery back to normal: ~128 -> 112 -> 96 -> 82 -> 74
+                step_in_phase = cycle_pos - 8
+                target_hr = max(72.0, 144.0 - step_in_phase * 14.0)
+                target_sys = max(118.0, 150.0 - step_in_phase * 6.5)
+                target_dia = max(78.0, 96.0 - step_in_phase * 3.5)
+                target_spo2 = min(98.5, 92.5 + step_in_phase * 1.2)
+                target_temp = max(36.8, 37.7 - step_in_phase * 0.18)
+
+            self._current_hr = round(target_hr + random.uniform(-1.5, 1.5), 1)
+            self._current_systolic = round(target_sys + random.uniform(-1.5, 1.5), 1)
+            self._current_diastolic = round(target_dia + random.uniform(-1.0, 1.0), 1)
+            self._current_spo2 = round(min(100.0, target_spo2 + random.uniform(-0.2, 0.2)), 1)
+            self._current_temp = round(target_temp + random.uniform(-0.05, 0.05), 1)
+
+        # -------------------------------------------------------------
         # Scenario 1: Normal Resting (natural variation 64 - 88 BPM)
         # -------------------------------------------------------------
-        if active_scenario == "NORMAL_RESTING":
+        elif active_scenario == "NORMAL_RESTING":
             import math
             self._current_activity = "Resting"
             # Gently oscillate baseline between 68 and 84 BPM so it doesn't stay stuck at 72
