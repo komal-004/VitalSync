@@ -83,24 +83,28 @@ class HealthDataSimulator:
         timestamp = custom_timestamp or datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # -------------------------------------------------------------
-        # Scenario 1: Normal Resting
+        # Scenario 1: Normal Resting (natural variation 64 - 88 BPM)
         # -------------------------------------------------------------
         if active_scenario == "NORMAL_RESTING":
+            import math
             self._current_activity = "Resting"
-            self._current_hr = self._drift(self._current_hr, target=72.0, speed=0.2, noise=1.2)
-            self._current_hr = max(60.0, min(85.0, self._current_hr))
+            # Gently oscillate baseline between 68 and 84 BPM so it doesn't stay stuck at 72
+            dynamic_target_hr = 76.0 + 8.0 * math.sin(self.sequence_number * 0.45)
+            self._current_hr = self._drift(self._current_hr, target=dynamic_target_hr, speed=0.3, noise=2.5)
+            self._current_hr = max(62.0, min(90.0, self._current_hr))
 
-            self._current_systolic = self._drift(self._current_systolic, target=118.0, speed=0.15, noise=1.5)
-            self._current_systolic = max(110.0, min(125.0, self._current_systolic))
+            dynamic_target_sys = 119.0 + 4.0 * math.cos(self.sequence_number * 0.3)
+            self._current_systolic = self._drift(self._current_systolic, target=dynamic_target_sys, speed=0.25, noise=1.8)
+            self._current_systolic = max(110.0, min(127.0, self._current_systolic))
 
-            self._current_diastolic = self._drift(self._current_diastolic, target=78.0, speed=0.15, noise=1.0)
+            self._current_diastolic = self._drift(self._current_diastolic, target=78.0, speed=0.2, noise=1.2)
             self._current_diastolic = max(70.0, min(84.0, self._current_diastolic))
 
-            self._current_spo2 = self._drift(self._current_spo2, target=98.8, speed=0.1, noise=0.2)
-            self._current_spo2 = max(97.0, min(100.0, self._current_spo2))
+            self._current_spo2 = self._drift(self._current_spo2, target=98.4, speed=0.15, noise=0.3)
+            self._current_spo2 = max(96.5, min(100.0, self._current_spo2))
 
-            self._current_temp = self._drift(self._current_temp, target=36.8, speed=0.08, noise=0.05)
-            self._current_temp = max(36.5, min(37.2, self._current_temp))
+            self._current_temp = self._drift(self._current_temp, target=36.8, speed=0.1, noise=0.06)
+            self._current_temp = max(36.4, min(37.2, self._current_temp))
 
         # -------------------------------------------------------------
         # Scenario 2: Walking

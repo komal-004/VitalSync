@@ -171,12 +171,11 @@ with st.sidebar:
         help="Switch scenarios to demonstrate anomaly detection rules live"
     )
 
-    # Immediately step simulation upon switching scenarios so the user sees the alert instantly
+    # Immediately step simulation upon switching scenarios so the user sees the alert in this exact render pass
     if selected_scenario != st.session_state.current_scenario_key:
         st.session_state.current_scenario_key = selected_scenario
         st.session_state.simulator.set_scenario(selected_scenario)
         step_simulation()
-        st.rerun()
 
     st.markdown("---")
     st.markdown("### 🎛️ Manual Vital Override (Drag & Test Any Value)")
@@ -190,14 +189,20 @@ with st.sidebar:
     latest_r = state_obj.latest_reading or {}
 
     if use_manual_vitals:
-        manual_hr = st.slider("Heart Rate (BPM)", min_value=35, max_value=200, value=int(latest_r.get("heart_rate", 75)), step=1)
+        safe_hr = int(latest_r.get("heart_rate") if latest_r.get("heart_rate") is not None else 75)
+        safe_sys = int(latest_r.get("systolic_bp") if latest_r.get("systolic_bp") is not None else 120)
+        safe_dia = int(latest_r.get("diastolic_bp") if latest_r.get("diastolic_bp") is not None else 80)
+        safe_spo2 = int(latest_r.get("spo2") if latest_r.get("spo2") is not None else 98)
+        safe_temp = float(latest_r.get("temperature") if latest_r.get("temperature") is not None else 36.8)
+
+        manual_hr = st.slider("Heart Rate (BPM)", min_value=35, max_value=200, value=max(35, min(200, safe_hr)), step=1)
         col_m_bp1, col_m_bp2 = st.columns(2)
         with col_m_bp1:
-            manual_sys = st.slider("Systolic BP", min_value=90, max_value=210, value=int(latest_r.get("systolic_bp", 120)), step=1)
+            manual_sys = st.slider("Systolic BP", min_value=90, max_value=210, value=max(90, min(210, safe_sys)), step=1)
         with col_m_bp2:
-            manual_dia = st.slider("Diastolic BP", min_value=50, max_value=125, value=int(latest_r.get("diastolic_bp", 80)), step=1)
-        manual_spo2 = st.slider("Oxygen SpO2 (%)", min_value=70, max_value=100, value=int(latest_r.get("spo2", 98)), step=1)
-        manual_temp = st.slider("Body Temp (°C)", min_value=34.0, max_value=41.5, value=float(latest_r.get("temperature", 36.8)), step=0.1)
+            manual_dia = st.slider("Diastolic BP", min_value=50, max_value=125, value=max(50, min(125, safe_dia)), step=1)
+        manual_spo2 = st.slider("Oxygen SpO2 (%)", min_value=70, max_value=100, value=max(70, min(100, safe_spo2)), step=1)
+        manual_temp = st.slider("Body Temp (°C)", min_value=34.0, max_value=41.5, value=max(34.0, min(41.5, safe_temp)), step=0.1)
         manual_activity = st.radio("Activity Context", ["Resting", "Walking", "Exercise"], horizontal=True)
 
         if st.button("⚡ Apply Manual Values", type="primary", use_container_width=True):
@@ -288,6 +293,25 @@ tab_live, tab_alerts, tab_history, tab_architecture = st.tabs([
 # TAB 1: LIVE MONITORING
 # =============================================================================
 with tab_live:
+    # 1-Click Quick Scenario Trigger Bar on Main Dashboard
+    st.caption("⚡ Quick Scenario Triggers (1-Click Alert & Warning Demo):")
+    q1, q2, q3, q4, q5, q6 = st.columns(6)
+    quick_triggers = [
+        (q1, "🟢 Normal", "NORMAL_RESTING"),
+        (q2, "⚠️ HR Warn (108)", "HR_ELEVATED"),
+        (q3, "🚨 HR Alert (168)", "HR_CRITICAL"),
+        (q4, "⚠️ BP Warn (136/88)", "UNUSUAL_BP_STAGE1"),
+        (q5, "🚨 BP Crisis (168/104)", "UNUSUAL_BP_STAGE2"),
+        (q6, "🚨 Multi-Crisis", "MULTIPLE_ANOMALIES"),
+    ]
+    for col, label, scen_key in quick_triggers:
+        with col:
+            if st.button(label, key=f"quick_{scen_key}", use_container_width=True):
+                st.session_state.current_scenario_key = scen_key
+                st.session_state.simulator.set_scenario(scen_key)
+                step_simulation()
+                st.rerun()
+
     # Vital KPI Cards
     render_vital_cards(latest_reading, latest_eval)
 
