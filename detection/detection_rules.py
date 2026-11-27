@@ -54,14 +54,14 @@ class AnomalyDetector:
         # Exercise Heart Rate (BPM)
         "hr_exercise_max_warn": 165,
         "hr_exercise_max_crit": 185,
-        # Blood Pressure Resting (mmHg)
+        # Blood Pressure Resting (mmHg) - AHA Guidelines
         "bp_systolic_warn": 130,
-        "bp_systolic_crit": 150,
+        "bp_systolic_crit": 145,
         "bp_diastolic_warn": 85,
         "bp_diastolic_crit": 95,
         # Blood Pressure Exercise (physiological exertion ceiling)
-        "bp_exercise_systolic_warn": 160,
-        "bp_exercise_systolic_crit": 180,
+        "bp_exercise_systolic_warn": 150,
+        "bp_exercise_systolic_crit": 175,
         # Oxygen Saturation SpO2 (%)
         "spo2_warn": 94.0,   # 90-94% is mild hypoxia / warning
         "spo2_crit": 90.0,   # <90% is critical hypoxia / emergency
@@ -354,7 +354,12 @@ class AnomalyDetector:
         all_rules = [f["rule"] for f in findings]
 
         if len(findings) > 1 and not primary.get("is_composite"):
-            primary_param = f"{primary['parameter']} (+{len(findings) - 1} other alerts)"
+            distinct_params = []
+            for f in findings:
+                p = f["parameter"].split(" (")[0]
+                if p not in distinct_params:
+                    distinct_params.append(p)
+            primary_param = " & ".join(distinct_params)
         else:
             primary_param = primary["parameter"]
 

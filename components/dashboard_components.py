@@ -201,12 +201,20 @@ def render_vital_cards(reading: Dict[str, Any], evaluation: Dict[str, Any]) -> N
     # Helper to pick accent color based on flagged parameters
     def get_color_for_metric(metric_names: List[str]) -> str:
         param_flagged = evaluation.get("parameter", "")
-        if any(name.lower() in param_flagged.lower() for name in metric_names):
-            return THEME_RED if severity == "HIGH" else THEME_AMBER
+        all_details = " ".join(evaluation.get("details", []))
+        all_rules = " ".join(evaluation.get("rules_triggered", []))
+        combined_text = f"{param_flagged} {all_details} {all_rules}".lower()
+        if any(name.lower() in combined_text for name in metric_names):
+            # If this parameter has a critical flag, color RED; if warning, color AMBER
+            if any(("crit" in r.lower() or "crisis" in r.lower()) and any(name.lower() in r.lower() for name in metric_names) for r in evaluation.get("rules_triggered", [])):
+                return THEME_RED
+            if severity == "HIGH" and any(name.lower() in param_flagged.lower() for name in metric_names):
+                return THEME_RED
+            return THEME_AMBER
         return THEME_TEAL
 
     hr_color = get_color_for_metric(["Heart Rate", "HR", "Tachycardia", "Bradycardia"])
-    bp_color = get_color_for_metric(["Blood Pressure", "BP", "Systolic", "Diastolic", "Hypertension"])
+    bp_color = get_color_for_metric(["Blood Pressure", "BP", "Systolic", "Diastolic", "Hypertension", "Hypertensive"])
     spo2_color = get_color_for_metric(["Oxygen", "SpO2", "Hypoxia", "Desaturation"])
     temp_color = get_color_for_metric(["Temperature", "Temp", "Fever", "Hypothermia"])
 
@@ -224,7 +232,7 @@ def render_vital_cards(reading: Dict[str, Any], evaluation: Dict[str, Any]) -> N
         <div class="vital-card">
             <div class="vital-label">Blood Pressure</div>
             <div class="vital-value" style="color: {bp_color}; font-size: 1.55rem;">{sys_bp}/{dia_bp}<span class="vital-unit">mmHg</span></div>
-            <div class="vital-subtitle">Normal: &lt;125/85</div>
+            <div class="vital-subtitle">Normal: &lt;130/85</div>
         </div>
         """, unsafe_allow_html=True)
 

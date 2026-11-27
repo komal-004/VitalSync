@@ -144,6 +144,8 @@ with st.sidebar:
         "NORMAL_RESTING": "🟢 Normal Resting",
         "WALKING": "🚶 Walking Activity",
         "EXERCISE": "🏃 Exercise (Cardio Workout)",
+        "UNUSUAL_BP_STAGE1": "⚠️ Unusual Blood Pressure (Stage 1 Warning: 136/88)",
+        "UNUSUAL_BP_STAGE2": "🚨 Unusual Blood Pressure (Stage 2 Crisis: 168/104)",
         "UNUSUAL_HEART_RATE": "⚠️ Unusual Heart Rate (Tachycardia)",
         "UNUSUAL_SPO2": "⚠️ Unusual SpO2 (Hypoxia Event)",
         "MULTIPLE_ANOMALIES": "🚨 Multiple Anomalies (Critical Crisis)",
@@ -151,14 +153,25 @@ with st.sidebar:
         "INVALID_DATA": "❌ Sensor Glitch / Out-of-Bounds Data",
     }
 
+    if "current_scenario_key" not in st.session_state:
+        st.session_state.current_scenario_key = "NORMAL_RESTING"
+
+    current_idx = list(scenario_options.keys()).index(st.session_state.current_scenario_key) if st.session_state.current_scenario_key in scenario_options else 0
+
     selected_scenario = st.selectbox(
         "Inject Scenario",
         options=list(scenario_options.keys()),
         format_func=lambda k: scenario_options[k],
-        index=0,
+        index=current_idx,
         help="Switch scenarios to demonstrate anomaly detection rules live"
     )
-    st.session_state.simulator.set_scenario(selected_scenario)
+
+    # Immediately step simulation upon switching scenarios so the user sees the alert instantly
+    if selected_scenario != st.session_state.current_scenario_key:
+        st.session_state.current_scenario_key = selected_scenario
+        st.session_state.simulator.set_scenario(selected_scenario)
+        step_simulation()
+        st.rerun()
 
     st.markdown("---")
     with st.expander("⚙️ Configurable Detection Thresholds"):
@@ -172,15 +185,22 @@ with st.sidebar:
         new_sys_warn = st.slider("Systolic BP Warning (mmHg)", 125, 145, int(curr_thresh["bp_systolic_warn"]))
         new_sys_crit = st.slider("Systolic BP Critical (mmHg)", 140, 180, int(curr_thresh["bp_systolic_crit"]))
 
-        # Apply threshold updates live
-        st.session_state.detector.update_thresholds({
+        # Apply threshold updates live and re-evaluate immediately
+        new_thresh_dict = {
             "hr_resting_max_warn": new_hr_rest_warn,
             "hr_resting_max_crit": new_hr_rest_crit,
             "spo2_warn": float(new_spo2_warn),
             "spo2_crit": float(new_spo2_crit),
             "bp_systolic_warn": new_sys_warn,
             "bp_systolic_crit": new_sys_crit,
-        })
+        }
+        st.session_state.detector.update_thresholds(new_thresh_dict)
+        if st.session_state.monitoring_state.latest_reading:
+            re_eval = st.session_state.detector.evaluate_reading(
+                st.session_state.monitoring_state.latest_reading,
+                recent_history=st.session_state.monitoring_state.get_recent_history()[:-1]
+            )
+            st.session_state.monitoring_state.latest_evaluation = re_eval.to_dict()
 
     st.markdown("---")
     st.markdown("### ☁️ Streaming Status")

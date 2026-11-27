@@ -94,21 +94,38 @@ class TestVitalSyncAnomalyDetection(unittest.TestCase):
         self.assertEqual(result.rule_triggered, "RULE_BRADYCARDIA_LOW_HEART_RATE")
 
     # -------------------------------------------------------------------------
-    # 3. Unusual Blood Pressure (Hypertension)
+    # 3. Unusual Blood Pressure (Hypertension - Stage 1 & Stage 2 Crisis)
     # -------------------------------------------------------------------------
     def test_unusual_blood_pressure(self):
         """Verifies that high systolic and diastolic BP triggers hypertension alert."""
-        reading = {
+        # Stage 1 Warning
+        warn_reading = {
+            "device_id": "FIT-TEST-01",
+            "timestamp": "2026-11-26 12:00:03",
+            "heart_rate": 74.0,
+            "systolic_bp": 136.0,  # Warning threshold >= 130
+            "diastolic_bp": 88.0,  # Warning threshold >= 85
+            "spo2": 98.0,
+            "temperature": 36.8,
+            "activity": "Resting"
+        }
+        res_warn = self.detector.evaluate_reading(warn_reading, recent_history=[])
+        self.assertTrue(res_warn.is_anomaly)
+        self.assertEqual(res_warn.severity, "WARNING")
+        self.assertEqual(res_warn.rule_triggered, "RULE_STAGE_1_HYPERTENSION")
+
+        # Stage 2 Hypertensive Crisis
+        crit_reading = {
             "device_id": "FIT-TEST-01",
             "timestamp": "2026-11-26 12:00:03",
             "heart_rate": 78.0,
-            "systolic_bp": 165.0,  # Critical systolic >= 150
+            "systolic_bp": 165.0,  # Critical systolic >= 145
             "diastolic_bp": 102.0, # Critical diastolic >= 95
             "spo2": 98.0,
             "temperature": 36.8,
             "activity": "Resting"
         }
-        result = self.detector.evaluate_reading(reading, recent_history=[])
+        result = self.detector.evaluate_reading(crit_reading, recent_history=[])
         self.assertTrue(result.is_anomaly)
         self.assertEqual(result.severity, "HIGH")
         self.assertEqual(result.rule_triggered, "RULE_CRITICAL_HYPERTENSION")

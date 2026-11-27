@@ -22,6 +22,8 @@ class HealthDataSimulator:
         "NORMAL_RESTING": "Normal Resting",
         "WALKING": "Walking",
         "EXERCISE": "Exercise",
+        "UNUSUAL_BP_STAGE1": "Unusual Blood Pressure (Stage 1 Warning: 136/88)",
+        "UNUSUAL_BP_STAGE2": "Unusual Blood Pressure (Stage 2 Hypertensive Crisis: 168/104)",
         "UNUSUAL_HEART_RATE": "Unusual Heart Rate (Tachycardia)",
         "UNUSUAL_SPO2": "Unusual Oxygen Saturation (Hypoxia)",
         "MULTIPLE_ANOMALIES": "Multiple Unusual Readings (Critical Distress)",
@@ -138,7 +140,41 @@ class HealthDataSimulator:
             self._current_temp = max(37.1, min(37.8, self._current_temp))
 
         # -------------------------------------------------------------
-        # Scenario 4: Unusual Heart Rate (Tachycardia at Rest)
+        # Scenario 4A: Unusual Blood Pressure - Stage 1 Warning (136/88)
+        # -------------------------------------------------------------
+        elif active_scenario == "UNUSUAL_BP_STAGE1":
+            self._current_activity = "Resting"
+            self._current_systolic = self._drift(self._current_systolic, target=136.0, speed=0.4, noise=1.2)
+            self._current_systolic = max(132.0, min(142.0, self._current_systolic))
+
+            self._current_diastolic = self._drift(self._current_diastolic, target=88.0, speed=0.35, noise=1.0)
+            self._current_diastolic = max(86.0, min(92.0, self._current_diastolic))
+
+            # Other parameters normal resting
+            self._current_hr = self._drift(self._current_hr, target=74.0, speed=0.2, noise=1.0)
+            self._current_hr = max(65.0, min(82.0, self._current_hr))
+            self._current_spo2 = self._drift(self._current_spo2, target=98.5, speed=0.1, noise=0.2)
+            self._current_temp = self._drift(self._current_temp, target=36.8, speed=0.08, noise=0.05)
+
+        # -------------------------------------------------------------
+        # Scenario 4B: Unusual Blood Pressure - Stage 2 Hypertensive Crisis (168/104)
+        # -------------------------------------------------------------
+        elif active_scenario == "UNUSUAL_BP_STAGE2":
+            self._current_activity = "Resting"
+            self._current_systolic = self._drift(self._current_systolic, target=168.0, speed=0.45, noise=2.0)
+            self._current_systolic = max(156.0, min(182.0, self._current_systolic))
+
+            self._current_diastolic = self._drift(self._current_diastolic, target=104.0, speed=0.4, noise=1.5)
+            self._current_diastolic = max(96.0, min(112.0, self._current_diastolic))
+
+            # Other parameters normal resting
+            self._current_hr = self._drift(self._current_hr, target=78.0, speed=0.2, noise=1.5)
+            self._current_hr = max(68.0, min(86.0, self._current_hr))
+            self._current_spo2 = self._drift(self._current_spo2, target=98.0, speed=0.1, noise=0.3)
+            self._current_temp = self._drift(self._current_temp, target=36.8, speed=0.08, noise=0.05)
+
+        # -------------------------------------------------------------
+        # Scenario 5: Unusual Heart Rate (Tachycardia at Rest)
         # -------------------------------------------------------------
         elif active_scenario == "UNUSUAL_HEART_RATE":
             self._current_activity = "Resting"  # Notice activity is resting, but HR is dangerously high
