@@ -146,20 +146,22 @@ The detection engine (`detection/detection_rules.py`) evaluates incoming reading
 
 ## 7. Simulation Scenarios
 
-The simulator includes 10 preset scenarios selectable from the sidebar:
+The simulator includes preset scenarios selectable from the sidebar:
 
 | # | Scenario Name | Target Physiological State | Primary Alert Triggered |
 |---|---|---|---|
 | 1 | **Normal Resting** | HR 72 BPM, BP 118/78 mmHg, SpO₂ 98.5% | `NORMAL` |
 | 2 | **Walking Activity** | HR 95 BPM, BP 125/81 mmHg, SpO₂ 98.0% | `NORMAL` |
 | 3 | **Exercise (Cardio Workout)** | HR 140 BPM, BP 142/84 mmHg, SpO₂ 96.5% | `NORMAL` (Context-normalized) |
-| 4 | **Unusual BP (Stage 1 Warning)** | HR 74 BPM, **BP 136/88 mmHg**, SpO₂ 98.5% | `WARNING` (`RULE_STAGE_1_HYPERTENSION`) |
-| 5 | **Unusual BP (Stage 2 Crisis)** | HR 78 BPM, **BP 168/104 mmHg**, SpO₂ 98.0% | `HIGH` (`RULE_CRITICAL_HYPERTENSION`) |
-| 6 | **Unusual Heart Rate (Tachycardia)** | **HR 168 BPM**, BP 138/88 mmHg, SpO₂ 97.0% | `HIGH` (`RULE_RESTING_CRITICAL_TACHYCARDIA`) |
-| 7 | **Unusual SpO₂ (Hypoxia Event)** | HR 112 BPM, BP 128/82 mmHg, **SpO₂ 87.5%** | `HIGH` (`RULE_CRITICAL_HYPOXIA`) |
-| 8 | **Multiple Anomalies (Critical Crisis)** | **HR 172 BPM**, **BP 175/108**, **SpO₂ 86%**, **Temp 39.1°C** | `HIGH` (`RULE_MULTI_CARDIORESPIRATORY_DISTRESS`) |
-| 9 | **Sudden Delta Spike** | Instantaneous jump of +40 BPM at rest | `WARNING` (`RULE_SUDDEN_HR_SPIKE`) |
-| 10 | **Sensor Glitch / Invalid Data** | Negative values, SpO₂ > 100%, or missing fields | `HIGH` (`RULE_DATA_VALIDATION_ERROR`) |
+| 4 | **Low Heart Rate (Bradycardia Warning)** | **HR 44 BPM**, BP 115/75 mmHg, SpO₂ 98.5% | `WARNING` (`RULE_BRADYCARDIA_LOW_HEART_RATE`) |
+| 5 | **Elevated Heart Rate (Tachycardia Warning)** | **HR 108 BPM**, BP 124/82 mmHg, SpO₂ 98.0% | `WARNING` (`RULE_RESTING_ELEVATED_TACHYCARDIA`) |
+| 6 | **Extreme Heart Rate (Severe Tachycardia)** | **HR 168 BPM**, BP 138/88 mmHg, SpO₂ 97.0% | `HIGH` (`RULE_RESTING_CRITICAL_TACHYCARDIA`) |
+| 7 | **High BP (Stage 1 Warning)** | HR 74 BPM, **BP 136/88 mmHg**, SpO₂ 98.5% | `WARNING` (`RULE_STAGE_1_HYPERTENSION`) |
+| 8 | **Severe BP (Stage 2 Crisis)** | HR 78 BPM, **BP 168/104 mmHg**, SpO₂ 98.0% | `HIGH` (`RULE_CRITICAL_HYPERTENSION`) |
+| 9 | **Unusual SpO₂ (Hypoxia Event)** | HR 112 BPM, BP 128/82 mmHg, **SpO₂ 87.5%** | `HIGH` (`RULE_CRITICAL_HYPOXIA`) |
+| 10 | **Multiple Anomalies (Critical Crisis)** | **HR 172 BPM**, **BP 175/108**, **SpO₂ 86%**, **Temp 39.1°C** | `HIGH` (`RULE_MULTI_CARDIORESPIRATORY_DISTRESS`) |
+| 11 | **Sudden Delta Spike** | Instantaneous jump of +40 BPM at rest | `WARNING` (`RULE_SUDDEN_HR_SPIKE`) |
+| 12 | **Sensor Glitch / Invalid Data** | Negative values, SpO₂ > 100%, or missing fields | `HIGH` (`RULE_DATA_VALIDATION_ERROR`) |
 
 ---
 

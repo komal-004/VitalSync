@@ -19,16 +19,19 @@ class HealthDataSimulator:
     """
 
     SCENARIOS = {
-        "NORMAL_RESTING": "Normal Resting",
-        "WALKING": "Walking",
-        "EXERCISE": "Exercise",
-        "UNUSUAL_BP_STAGE1": "Unusual Blood Pressure (Stage 1 Warning: 136/88)",
-        "UNUSUAL_BP_STAGE2": "Unusual Blood Pressure (Stage 2 Hypertensive Crisis: 168/104)",
-        "UNUSUAL_HEART_RATE": "Unusual Heart Rate (Tachycardia)",
-        "UNUSUAL_SPO2": "Unusual Oxygen Saturation (Hypoxia)",
-        "MULTIPLE_ANOMALIES": "Multiple Unusual Readings (Critical Distress)",
-        "SUDDEN_SPIKE": "Sudden Vital Spike",
-        "INVALID_DATA": "Sensor Glitch / Invalid Data",
+        "NORMAL_RESTING": "🟢 Normal Resting (HR ~72 BPM, BP ~118/78)",
+        "WALKING": "🚶 Walking Activity (HR ~95 BPM, BP ~125/81)",
+        "EXERCISE": "🏃 Exercise Cardio (HR ~140 BPM, BP ~142/84)",
+        "HR_BRADYCARDIA": "⚠️ Low Heart Rate (Bradycardia: 44 BPM Warning)",
+        "HR_ELEVATED": "⚠️ Elevated Heart Rate (Tachycardia: 108 BPM Warning)",
+        "HR_CRITICAL": "🚨 Extreme Heart Rate (Severe Tachycardia: 168 BPM Critical)",
+        "UNUSUAL_HEART_RATE": "🚨 Unusual Heart Rate (Tachycardia: 168 BPM Critical)",
+        "UNUSUAL_BP_STAGE1": "⚠️ High Blood Pressure (Stage 1 Warning: 136/88)",
+        "UNUSUAL_BP_STAGE2": "🚨 Severe Blood Pressure (Stage 2 Crisis: 168/104)",
+        "UNUSUAL_SPO2": "🚨 Unusual Oxygen SpO2 (Hypoxia: 87.5% Critical)",
+        "MULTIPLE_ANOMALIES": "🚨 Multiple Crisis (High HR + High BP + Hypoxia + Fever)",
+        "SUDDEN_SPIKE": "⚡ Sudden Vital Spike (+40 BPM Delta)",
+        "INVALID_DATA": "❌ Sensor Glitch (Out-of-Bounds Data)",
     }
 
     def __init__(self, device_id: str = "FIT-101"):
@@ -174,12 +177,36 @@ class HealthDataSimulator:
             self._current_temp = self._drift(self._current_temp, target=36.8, speed=0.08, noise=0.05)
 
         # -------------------------------------------------------------
-        # Scenario 5: Unusual Heart Rate (Tachycardia at Rest)
+        # Scenario 5A: Low Heart Rate (Bradycardia Warning: 44 BPM)
         # -------------------------------------------------------------
-        elif active_scenario == "UNUSUAL_HEART_RATE":
-            self._current_activity = "Resting"  # Notice activity is resting, but HR is dangerously high
-            self._current_hr = self._drift(self._current_hr, target=168.0, speed=0.35, noise=2.5)
-            self._current_hr = max(150.0, min(185.0, self._current_hr))
+        elif active_scenario == "HR_BRADYCARDIA":
+            self._current_activity = "Resting"
+            self._current_hr = self._drift(self._current_hr, target=44.0, speed=0.55, noise=1.0)
+            self._current_hr = max(38.0, min(48.0, self._current_hr))
+            self._current_systolic = 115.0
+            self._current_diastolic = 75.0
+            self._current_spo2 = 98.5
+            self._current_temp = 36.7
+
+        # -------------------------------------------------------------
+        # Scenario 5B: Elevated Heart Rate (Tachycardia Warning: 108 BPM)
+        # -------------------------------------------------------------
+        elif active_scenario == "HR_ELEVATED":
+            self._current_activity = "Resting"
+            self._current_hr = self._drift(self._current_hr, target=108.0, speed=0.55, noise=1.5)
+            self._current_hr = max(102.0, min(116.0, self._current_hr))
+            self._current_systolic = 124.0
+            self._current_diastolic = 82.0
+            self._current_spo2 = 98.0
+            self._current_temp = 36.8
+
+        # -------------------------------------------------------------
+        # Scenario 5C: Extreme Heart Rate (Severe Tachycardia Critical: 168 BPM)
+        # -------------------------------------------------------------
+        elif active_scenario in ("HR_CRITICAL", "UNUSUAL_HEART_RATE"):
+            self._current_activity = "Resting"  # Resting with dangerous tachycardia
+            self._current_hr = self._drift(self._current_hr, target=168.0, speed=0.55, noise=2.0)
+            self._current_hr = max(152.0, min(185.0, self._current_hr))
 
             # Blood pressure slightly elevated due to strain
             self._current_systolic = self._drift(self._current_systolic, target=138.0, speed=0.2, noise=1.5)

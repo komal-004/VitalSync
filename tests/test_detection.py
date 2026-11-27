@@ -61,6 +61,7 @@ class TestVitalSyncAnomalyDetection(unittest.TestCase):
     # -------------------------------------------------------------------------
     def test_unusual_heart_rate_tachycardia(self):
         """Verifies that an elevated heart rate at rest triggers tachycardia alert."""
+        # Critical Tachycardia (>130 BPM)
         reading = {
             "device_id": "FIT-TEST-01",
             "timestamp": "2026-11-26 12:00:01",
@@ -75,6 +76,13 @@ class TestVitalSyncAnomalyDetection(unittest.TestCase):
         self.assertTrue(result.is_anomaly)
         self.assertEqual(result.severity, "HIGH")
         self.assertEqual(result.rule_triggered, "RULE_RESTING_CRITICAL_TACHYCARDIA")
+
+        # Warning Elevated Tachycardia (101 - 130 BPM)
+        warn_reading = dict(reading, heart_rate=108.0)
+        warn_result = self.detector.evaluate_reading(warn_reading, recent_history=[])
+        self.assertTrue(warn_result.is_anomaly)
+        self.assertEqual(warn_result.severity, "WARNING")
+        self.assertEqual(warn_result.rule_triggered, "RULE_RESTING_ELEVATED_TACHYCARDIA")
 
     def test_unusual_heart_rate_bradycardia(self):
         """Verifies that an abnormally low resting heart rate triggers a WARNING."""

@@ -141,15 +141,17 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 🧪 Simulation Scenarios")
     scenario_options = {
-        "NORMAL_RESTING": "🟢 Normal Resting",
-        "WALKING": "🚶 Walking Activity",
-        "EXERCISE": "🏃 Exercise (Cardio Workout)",
-        "UNUSUAL_BP_STAGE1": "⚠️ Unusual Blood Pressure (Stage 1 Warning: 136/88)",
-        "UNUSUAL_BP_STAGE2": "🚨 Unusual Blood Pressure (Stage 2 Crisis: 168/104)",
-        "UNUSUAL_HEART_RATE": "⚠️ Unusual Heart Rate (Tachycardia)",
-        "UNUSUAL_SPO2": "⚠️ Unusual SpO2 (Hypoxia Event)",
-        "MULTIPLE_ANOMALIES": "🚨 Multiple Anomalies (Critical Crisis)",
-        "SUDDEN_SPIKE": "⚡ Sudden Delta Spike",
+        "NORMAL_RESTING": "🟢 Normal Resting (HR ~72 BPM, BP ~118/78)",
+        "WALKING": "🚶 Walking Activity (HR ~95 BPM, BP ~125/81)",
+        "EXERCISE": "🏃 Exercise Cardio (HR ~140 BPM, BP ~142/84)",
+        "HR_BRADYCARDIA": "⚠️ Low Heart Rate (Bradycardia: 44 BPM Warning)",
+        "HR_ELEVATED": "⚠️ Elevated Heart Rate (Tachycardia: 108 BPM Warning)",
+        "HR_CRITICAL": "🚨 Extreme Heart Rate (Severe Tachycardia: 168 BPM Critical)",
+        "UNUSUAL_BP_STAGE1": "⚠️ High Blood Pressure (Stage 1 Warning: 136/88)",
+        "UNUSUAL_BP_STAGE2": "🚨 Severe Blood Pressure (Stage 2 Crisis: 168/104)",
+        "UNUSUAL_SPO2": "🚨 Unusual Oxygen SpO2 (Hypoxia: 87.5% Critical)",
+        "MULTIPLE_ANOMALIES": "🚨 Multiple Crisis (High HR + High BP + Hypoxia + Fever)",
+        "SUDDEN_SPIKE": "⚡ Sudden Vital Spike (+40 BPM Delta)",
         "INVALID_DATA": "❌ Sensor Glitch / Out-of-Bounds Data",
     }
 
@@ -174,19 +176,64 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
+    st.markdown("### 🎛️ Manual Vital Override (Drag & Test Any Value)")
+    use_manual_vitals = st.checkbox(
+        "Enable Manual Sliders",
+        value=False,
+        help="Directly drag Heart Rate, Blood Pressure, or SpO2 to see live alert changes instantly"
+    )
+
+    state_obj = st.session_state.monitoring_state
+    latest_r = state_obj.latest_reading or {}
+
+    if use_manual_vitals:
+        manual_hr = st.slider("Heart Rate (BPM)", min_value=35, max_value=200, value=int(latest_r.get("heart_rate", 75)), step=1)
+        col_m_bp1, col_m_bp2 = st.columns(2)
+        with col_m_bp1:
+            manual_sys = st.slider("Systolic BP", min_value=90, max_value=210, value=int(latest_r.get("systolic_bp", 120)), step=1)
+        with col_m_bp2:
+            manual_dia = st.slider("Diastolic BP", min_value=50, max_value=125, value=int(latest_r.get("diastolic_bp", 80)), step=1)
+        manual_spo2 = st.slider("Oxygen SpO2 (%)", min_value=70, max_value=100, value=int(latest_r.get("spo2", 98)), step=1)
+        manual_temp = st.slider("Body Temp (°C)", min_value=34.0, max_value=41.5, value=float(latest_r.get("temperature", 36.8)), step=0.1)
+        manual_activity = st.radio("Activity Context", ["Resting", "Walking", "Exercise"], horizontal=True)
+
+        if st.button("⚡ Apply Manual Values", type="primary", use_container_width=True):
+            custom_reading = {
+                "device_id": "FIT-101",
+                "sequence_number": state_obj.total_readings_generated + 1,
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "heart_rate": float(manual_hr),
+                "systolic_bp": float(manual_sys),
+                "diastolic_bp": float(manual_dia),
+                "spo2": float(manual_spo2),
+                "temperature": float(manual_temp),
+                "activity": manual_activity,
+                "scenario": f"Manual Override ({manual_hr} BPM)",
+                "is_simulated": True,
+            }
+            eval_res = st.session_state.detector.evaluate_reading(
+                custom_reading,
+                recent_history=state_obj.get_recent_history()
+            )
+            state_obj.record_reading(custom_reading, eval_res.to_dict())
+            st.rerun()
+
+    st.markdown("---")
     with st.expander("⚙️ Configurable Detection Thresholds"):
         st.caption("Demonstration rules (not medical diagnostic criteria)")
         curr_thresh = st.session_state.detector.thresholds
 
-        new_hr_rest_warn = st.slider("Resting HR Warning (BPM)", 85, 120, int(curr_thresh["hr_resting_max_warn"]))
-        new_hr_rest_crit = st.slider("Resting HR Critical (BPM)", 120, 160, int(curr_thresh["hr_resting_max_crit"]))
-        new_spo2_warn = st.slider("SpO2 Warning Threshold (%)", 90, 96, int(curr_thresh["spo2_warn"]))
-        new_spo2_crit = st.slider("SpO2 Critical Threshold (%)", 85, 92, int(curr_thresh["spo2_crit"]))
-        new_sys_warn = st.slider("Systolic BP Warning (mmHg)", 125, 145, int(curr_thresh["bp_systolic_warn"]))
-        new_sys_crit = st.slider("Systolic BP Critical (mmHg)", 140, 180, int(curr_thresh["bp_systolic_crit"]))
+        new_hr_rest_min = st.slider("Resting HR Minimum / Bradycardia (BPM)", 40, 65, int(curr_thresh.get("hr_resting_min_warn", 50)))
+        new_hr_rest_warn = st.slider("Resting HR Warning (BPM)", 50, 120, int(curr_thresh["hr_resting_max_warn"]))
+        new_hr_rest_crit = st.slider("Resting HR Critical (BPM)", 110, 170, int(curr_thresh["hr_resting_max_crit"]))
+        new_sys_warn = st.slider("Systolic BP Warning (mmHg)", 115, 145, int(curr_thresh["bp_systolic_warn"]))
+        new_sys_crit = st.slider("Systolic BP Critical (mmHg)", 135, 185, int(curr_thresh["bp_systolic_crit"]))
+        new_spo2_warn = st.slider("SpO2 Warning Threshold (%)", 85, 96, int(curr_thresh["spo2_warn"]))
+        new_spo2_crit = st.slider("SpO2 Critical Threshold (%)", 80, 92, int(curr_thresh["spo2_crit"]))
 
         # Apply threshold updates live and re-evaluate immediately
         new_thresh_dict = {
+            "hr_resting_min_warn": new_hr_rest_min,
             "hr_resting_max_warn": new_hr_rest_warn,
             "hr_resting_max_crit": new_hr_rest_crit,
             "spo2_warn": float(new_spo2_warn),
