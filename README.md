@@ -4,7 +4,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-FF4B4B)
 ![Plotly](https://img.shields.io/badge/Plotly-5.18+-teal)
 ![Architecture](https://img.shields.io/badge/Architecture-Event--Driven%20%2F%20Cloud--Ready-00D2BE)
-![Tests](https://img.shields.io/badge/Tests-14%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-18%20Passing-brightgreen)
 
 > **B.Tech Computer Science & Engineering Capstone Project**  
 > *Domain: HealthTech, Internet of Medical Things (IoMT), Real-Time Distributed Streaming, Cloud Computing*
@@ -221,7 +221,15 @@ VitalSync/
 ├── tests/
 │   ├── __init__.py
 │   ├── test_detection.py          # 11 Unit tests for detection rules
-│   └── test_services.py           # 3 Integration tests for simulator & buffers
+│   ├── test_services.py           # 3 Integration tests for simulator & buffers
+│   └── test_cloud.py              # 4 Phase 2 tests for Kafka & AWS Lambda
+├── cloud/
+│   ├── __init__.py
+│   ├── docker-compose.yml         # Apache Kafka (KRaft) + Kafka Web UI
+│   ├── kafka_producer.py          # Standalone Kafka producer script
+│   ├── kafka_consumer.py          # Standalone Kafka consumer runner
+│   ├── lambda_function.py         # AWS Lambda handler (ESM + SNS + DynamoDB)
+│   └── deploy_cloud.md            # Step-by-step AWS deployment guide
 └── docs/
     ├── architecture.md            # Technical architecture specification
     └── project_overview.md        # Academic defense guide for faculty review

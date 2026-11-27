@@ -1,8 +1,13 @@
-# VitalSync Prototype v1 Dependencies
-# Compatible with Python 3.10, 3.11, 3.12, 3.13, 3.14 on macOS (M1/M2/M3/Intel), Linux, Windows
+# VitalSync Dependencies (Prototype v1 + Phase 2 Cloud)
+# Compatible with Python 3.10 - 3.14 on macOS (M1/M2/M3/Intel), Linux, Windows
 
+# Prototype v1 (Dashboard & Analytics)
 streamlit>=1.32.0,<2.0.0
 pandas>=2.1.0,<3.0.0
 plotly>=5.18.0,<6.0.0
 numpy>=1.24.0,<3.0.0
 pytest>=7.4.0,<9.0.0
+
+# Phase 2 (Apache Kafka & AWS SDK)
+kafka-python>=2.0.2,<3.0.0
+boto3>=1.34.0,<2.0.0

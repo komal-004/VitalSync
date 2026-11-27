@@ -8,6 +8,8 @@ Project: VitalSync (HealthTech / IoT Stream Processing)
 import sys
 import os
 import time
+import json
+import base64
 import streamlit as st
 import pandas as pd
 
@@ -19,6 +21,7 @@ if PROJECT_ROOT not in sys.path:
 from simulator.health_generator import HealthDataSimulator
 from detection.detection_rules import AnomalyDetector
 from services.data_service import MonitoringState
+from cloud.lambda_function import lambda_handler
 from components.dashboard_components import (
     get_custom_css,
     render_header,
@@ -432,55 +435,67 @@ with tab_history:
 
 
 # =============================================================================
-# TAB 4: KAFKA & CLOUD ARCHITECTURE PREPARATION
+# TAB 4: KAFKA & CLOUD ARCHITECTURE (PHASE 2)
 # =============================================================================
 with tab_architecture:
-    st.markdown("### ☁️ Streaming & Cloud Architecture Preparation")
+    st.markdown("### ☁️ Phase 2: Apache Kafka & AWS Serverless Architecture")
     st.markdown("""
-    VitalSync Prototype v1 prepares a modular event-streaming contract ready for seamless
-    integration with **Apache Kafka** and **AWS Lambda** in Phase 2.
+    VitalSync includes complete **Phase 2 Cloud Scripts** inside `cloud/`:
+    `docker-compose.yml` (Kafka + Kafka UI), `kafka_producer.py`, `kafka_consumer.py`, and `lambda_function.py` (AWS Lambda + SNS + DynamoDB).
     """)
 
     col_arch1, col_arch2 = st.columns([1, 1])
 
     with col_arch1:
-        st.markdown("#### 📦 Active Kafka Topic Payload (Simulated Event)")
-        st.caption("Standardized JSON payload prepared for Kafka topic: `health-events`")
+        st.markdown("#### 📦 Active Kafka Topic Payload (`health-events`)")
+        st.caption("Standardized JSON payload published by `kafka_producer.py`")
         kafka_sample = state.stream_publisher.get_kafka_sample_json()
         st.code(kafka_sample, language="json")
 
     with col_arch2:
-        st.markdown("#### 🔄 Transition: Prototype v1 to Cloud Phase 2")
-        st.markdown("""
-        | Component | Prototype v1 (Implemented) | Phase 2 Cloud Upgrade |
-        |---|---|---|
-        | **Producer** | In-Memory `HealthDataSimulator` | Python `KafkaProducer` running on Raspberry Pi / wearable agent |
-        | **Message Broker** | `StreamEventPublisher` abstraction | **Apache Kafka** cluster (topic: `health-events`, partitioned by `device_id`) |
-        | **Compute / Rules** | Local `AnomalyDetector` module | **AWS Lambda** serverless microservice triggered on Kafka batch events |
-        | **Alert Routing** | Local Streamlit UI banner | **Amazon SNS** (SMS & Email alerts to clinicians) |
-        | **Persistence** | In-memory circular buffer | **Amazon DynamoDB** time-series NoSQL storage |
-        | **Dashboard** | Streamlit Local App | Streamlit Cloud / React Web Dashboard |
-        """)
+        st.markdown("#### ⚡ Test AWS Lambda Handler Live (Mock ESM)")
+        st.caption("Simulates AWS MSK triggering `cloud/lambda_function.py` with base64-encoded Kafka records.")
+        if st.button("🚀 Invoke AWS Lambda Handler on Current Reading", type="primary", use_container_width=True):
+            envelope = state.stream_publisher.last_published_payload or state.stream_publisher.publish_event(latest_reading)
+            encoded_val = base64.b64encode(json.dumps(envelope).encode("utf-8")).decode("utf-8")
+            mock_esm_event = {
+                "eventSource": "aws:kafka",
+                "records": {
+                    "health-events-0": [
+                        {
+                            "topic": "health-events",
+                            "partition": 0,
+                            "offset": latest_reading.get("sequence_number", 1),
+                            "value": encoded_val,
+                        }
+                    ]
+                }
+            }
+            lambda_resp = lambda_handler(mock_esm_event)
+            st.success("✅ AWS Lambda Execution Complete (HTTP 200)")
+            st.json(lambda_resp)
 
     st.markdown("---")
-    st.markdown("#### 🏗️ Architecture Diagram (Phase 1 Local vs Phase 2 Cloud)")
+    st.markdown("#### 🐳 Quick-Start Commands for Local Kafka (Docker)")
+    st.code("""# 1. Start Apache Kafka & Kafka Web UI (http://localhost:8085)
+docker-compose -f cloud/docker-compose.yml up -d
+
+# 2. Stream live events from simulator to Kafka topic 'health-events'
+python cloud/kafka_producer.py --interval 1.0
+
+# 3. Consume & evaluate events in real time
+python cloud/kafka_consumer.py""", language="bash")
+
+    st.markdown("---")
+    st.markdown("#### 🔄 Architecture Matrix: Prototype v1 vs. Phase 2 Cloud")
     st.markdown("""
-    ```mermaid
-    flowchart LR
-        subgraph Phase1["Prototype v1 (Implemented Today)"]
-            A1["HealthDataSimulator<br/>(FIT-101)"] -->|"In-Memory Event"| B1["StreamEventPublisher<br/>(health-events abstraction)"]
-            B1 -->|"Direct Evaluation"| C1["AnomalyDetector<br/>(Rule Engine)"]
-            C1 -->|"State Buffer"| D1["Streamlit Dashboard<br/>(Charts, Alerts & History)"]
-        end
-        
-        subgraph Phase2["Phase 2 (Cloud Upgrade Roadmap)"]
-            A2["Wearable Device /<br/>Python Producer"] -->|"Publish JSON"| B2["Apache Kafka<br/>topic: health-events"]
-            B2 -->|"Event Trigger"| C2["AWS Lambda<br/>(Serverless Anomaly Detector)"]
-            C2 -->|"Critical Alerts"| D2["Amazon SNS<br/>(SMS / Email)"]
-            C2 -->|"Persist All Events"| E2["Amazon DynamoDB<br/>(NoSQL Storage)"]
-            E2 -->|"Query & Stream"| F2["Monitoring Dashboard<br/>(Clinician Portal)"]
-        end
-    ```
+    | Component | Prototype v1 (Local) | Phase 2 (Implemented Scripts in `cloud/`) |
+    |---|---|---|
+    | **Producer** | In-Memory `HealthDataSimulator` | `cloud/kafka_producer.py` (`KafkaProducer`) |
+    | **Message Broker** | `StreamEventPublisher` abstraction | `cloud/docker-compose.yml` (**Apache Kafka** + **Kafka UI** on `:8085`) |
+    | **Compute / Rules** | Local `AnomalyDetector` module | `cloud/lambda_function.py` (**AWS Lambda** ESM batch handler) |
+    | **Alert Routing** | Local Streamlit UI banner | **Amazon SNS** (`sns.publish` for HIGH severity alerts) |
+    | **Persistence** | In-memory circular buffer | **Amazon DynamoDB** (`VitalSyncReadings` & `VitalSyncAlerts`) |
     """)
 
 
